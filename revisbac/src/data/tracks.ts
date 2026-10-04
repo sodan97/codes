@@ -14,8 +14,8 @@ export interface TrackInfo {
 export const tracks: TrackInfo[] = [
   {
     id: 'bfm',
-    label: 'BFM',
-    description: 'Brevet de Fin d’études Moyennes — classe de 3e',
+    label: 'BFEM',
+    description: 'Brevet de Fin d’Études Moyennes — classe de 3e',
     emoji: '🎒',
     defaultExamDate: '2027-07-12',
   },

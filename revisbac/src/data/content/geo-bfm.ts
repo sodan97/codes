@@ -542,7 +542,7 @@ const subject: Subject = {
             },
             {
               kind: 'tip',
-              text: "Pour chaque activité, retiens le schéma : localisation → atouts → problèmes → solutions. C'est le plan type d'une réponse au BFM.",
+              text: "Pour chaque activité, retiens le schéma : localisation → atouts → problèmes → solutions. C'est le plan type d'une réponse au BFEM.",
             },
           ],
         },

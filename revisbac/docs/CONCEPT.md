@@ -1,6 +1,6 @@
 # RéviBac — concept produit
 
-Application mobile de **révision** (pas de cours complets) pour les élèves sénégalais qui préparent le **BFM** (3e) et le **Baccalauréat** (Terminale S et L). Elle se joue comme un jeu, pour donner envie de réviser un peu chaque jour.
+Application mobile de **révision** (pas de cours complets) pour les élèves sénégalais qui préparent le **BFEM** (3e) et le **Baccalauréat** (Terminale S et L). Elle se joue comme un jeu, pour donner envie de réviser un peu chaque jour.
 
 ## 1. L'idée de départ
 
@@ -30,7 +30,7 @@ Application mobile de **révision** (pas de cours complets) pour les élèves s�
 
 ## 3. Parcours de l'élève
 
-1. **Accueil (onboarding)** : prénom → examen (BFM, Bac S, Bac L) → objectif quotidien.
+1. **Accueil (onboarding)** : prénom → examen (BFEM, Bac S, Bac L) → objectif quotidien.
 2. **Accueil** : série, niveau, objectif du jour, défi du jour, J-xx, suggestion de fiche, erreurs à revoir, conseil.
 3. **Réviser** : matières → chapitres → *Fiche* → *Flashcards* → *Quiz*.
 4. **Défis** : défi du jour, revoir mes erreurs, statistiques de la semaine, examens blancs par matière.
@@ -55,12 +55,12 @@ Niveau *n* atteint à 50 × (n−1) × n XP (100, 300, 600, 1 000…).
 
 ## 5. Feuille de route proposée
 
-**V1 — prototype actuel (ce dépôt)** : application hors-ligne, 18 matières (BFM, Bac S, Bac L), fiches, flashcards, quiz, défis, badges.
+**V1 — prototype actuel (ce dépôt)** : application hors-ligne, 18 matières (BFEM, Bac S, Bac L), fiches, flashcards, quiz, défis, badges.
 
 **V2 — contenu et qualité**
 - Faire **relire et compléter le contenu par des enseignants** sénégalais (un chapitre = une fiche validée).
 - Couvrir tout le programme officiel, séries S1/S2/S3 et L1/L2/L’ distinguées quand les programmes diffèrent.
-- **Annales corrigées** du BFM et du Bac (sujets des années précédentes, découpés par chapitre).
+- **Annales corrigées** du BFEM et du Bac (sujets des années précédentes, découpés par chapitre).
 - Formules mathématiques mises en forme (rendu LaTeX) et schémas (SVT, physique, cartes en géographie).
 - Matières supplémentaires : économie, éducation civique, arabe, portugais, allemand…
 

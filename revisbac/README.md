@@ -1,6 +1,6 @@
 # RéviBac 🇸🇳
 
-Application mobile de révision gamifiée pour les élèves sénégalais qui préparent le **BFM** (3e) et le **Baccalauréat** (Terminale S et L).
+Application mobile de révision gamifiée pour les élèves sénégalais qui préparent le **BFEM** (3e) et le **Baccalauréat** (Terminale S et L).
 
 Fiches synthétiques, flashcards, quiz (QCM, vrai/faux, textes à trous), défi du jour à partager, révision express, erreurs revues à intervalles croissants, examens blancs chronométrés notés sur 20 avec diagnostic par chapitre, séries de jours, niveaux, badges et rappel quotidien. Tout fonctionne **hors-ligne**.
 

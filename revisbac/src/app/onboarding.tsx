@@ -104,7 +104,7 @@ function OnboardingForm() {
             <Text style={styles.hero}>🇸🇳</Text>
             <Text style={[ui.h1, { textAlign: 'center' }]}>Bienvenue sur RéviBac</Text>
             <Text style={[ui.body, { textAlign: 'center', color: colors.muted }]}>
-              Des fiches courtes, des quiz et des défis quotidiens pour réussir ton BFM ou ton Bac. Quelques minutes par jour suffisent !
+              Des fiches courtes, des quiz et des défis quotidiens pour réussir ton BFEM ou ton Bac. Quelques minutes par jour suffisent !
             </Text>
             <Text style={styles.label}>Comment t’appelles-tu ?</Text>
             <TextInput

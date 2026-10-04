@@ -427,7 +427,7 @@ const subject: Subject = {
     {
       id: "anglais-bfm-vocabulary",
       title: "Vocabulary : school, health, environment",
-      summary: "Maîtriser le vocabulaire des thèmes fréquents au BFM : l'école, la santé et l'environnement.",
+      summary: "Maîtriser le vocabulaire des thèmes fréquents au BFEM : l'école, la santé et l'environnement.",
       essentials: [
         "School : pupil/student, teacher, subject, timetable, homework, exam, to pass / to fail an exam.",
         "Health : disease, malaria, mosquito net, vaccine, to wash one's hands, healthy food.",
