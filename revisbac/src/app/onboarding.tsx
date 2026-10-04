@@ -2,14 +2,16 @@ import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, BackHandler, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { RestoreBackup } from '../components/RestoreBackup';
 import { SubjectPicker } from '../components/SubjectPicker';
-import { Button, Screen, styles as ui } from '../components/ui';
+import { Button, Screen, useUi } from '../components/ui';
 import { tracks } from '../data/catalog';
 import type { TrackId } from '../data/types';
 import { createProfile, DAILY_GOAL_OPTIONS, type ReminderSettings } from '../lib/gamification';
 import { DEFAULT_REMINDER_HOUR, formatHour, REMINDER_HOURS, requestReminderPermission } from '../lib/reminders';
 import { useProgress } from '../state/progress';
-import { colors, radius } from '../theme';
+import { useStyles, useTheme } from '../state/theme';
+import { radius, textOn, type Colors } from '../theme';
 
 const GOAL_LABELS: Record<number, string> = { 30: 'Tranquille', 50: 'Régulier', 100: 'Sérieux', 150: 'Intense' };
 // Pas de notifications sur le web : l'étape du rappel n'y est pas proposée.
@@ -24,12 +26,16 @@ function leave() {
 
 export default function Onboarding() {
   const { loaded } = useProgress();
+  const { colors } = useTheme();
   // Le formulaire s'initialise depuis le profil : on attend qu'il soit chargé (rechargement web, lien profond).
   if (!loaded) return <ActivityIndicator color={colors.primary} style={{ flex: 1, backgroundColor: colors.bg }} />;
   return <OnboardingForm />;
 }
 
 function OnboardingForm() {
+  const { colors } = useTheme();
+  const styles = useStyles(makeStyles);
+  const ui = useUi();
   const { state, setProfile } = useProgress();
   const editing = !!state.profile;
   const [step, setStep] = useState(0);
@@ -43,16 +49,19 @@ function OnboardingForm() {
     previousReminder ? (previousReminder.enabled ? previousReminder.hour : null) : DEFAULT_REMINDER_HOUR,
   );
   const [saving, setSaving] = useState(false);
+  // Étape 0 : « J'ai déjà une sauvegarde » remplace le formulaire par la restauration.
+  const [restoring, setRestoring] = useState(false);
 
-  // Bouton retour d'Android : revient à l'étape précédente au lieu de quitter l'onboarding.
+  // Bouton retour d'Android : revient à l'étape précédente (ou ferme la restauration) au lieu de quitter l'onboarding.
   useEffect(() => {
-    if (step === 0) return;
+    if (step === 0 && !restoring) return;
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
-      setStep((s) => Math.max(0, s - 1));
+      if (restoring) setRestoring(false);
+      else setStep((s) => Math.max(0, s - 1));
       return true;
     });
     return () => sub.remove();
-  }, [step]);
+  }, [step, restoring]);
 
   const chooseTrack = (id: TrackId) => {
     setTrack(id);
@@ -93,15 +102,30 @@ function OnboardingForm() {
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <Screen edges={['top', 'bottom']}>
-        <View style={styles.dots}>
+        <View style={styles.dots} accessible accessibilityLabel={`Étape ${step + 1} sur ${STEPS}`}>
           {Array.from({ length: STEPS }, (_, i) => (
             <View key={i} style={[styles.dot, i <= step && { backgroundColor: colors.primary }]} />
           ))}
         </View>
 
-        {step === 0 && (
+        {step === 0 && restoring && (
           <View style={{ gap: 16 }}>
-            <Text style={styles.hero}>🇸🇳</Text>
+            <Text style={styles.hero} importantForAccessibility="no" accessibilityElementsHidden>
+              💾
+            </Text>
+            <Text style={[ui.h1, { textAlign: 'center' }]}>Retrouver ma progression</Text>
+            <Text style={[ui.body, { textAlign: 'center', color: colors.muted }]}>
+              Colle le message de sauvegarde que tu as gardé : ton XP, tes badges, ta série et tes étoiles reviennent tels quels.
+            </Text>
+            <RestoreBackup onRestored={leave} onCancel={() => setRestoring(false)} />
+          </View>
+        )}
+
+        {step === 0 && !restoring && (
+          <View style={{ gap: 16 }}>
+            <Text style={styles.hero} importantForAccessibility="no" accessibilityElementsHidden>
+              🇸🇳
+            </Text>
             <Text style={[ui.h1, { textAlign: 'center' }]}>Bienvenue sur RéviBac</Text>
             <Text style={[ui.body, { textAlign: 'center', color: colors.muted }]}>
               Des fiches courtes, des quiz et des défis quotidiens pour réussir ton BFEM ou ton Bac. Quelques minutes par jour suffisent !
@@ -119,6 +143,9 @@ function OnboardingForm() {
             />
             <Button label="Continuer" onPress={() => setStep(1)} />
             {editing && <Button label="Annuler" variant="ghost" onPress={leave} />}
+            <Text style={styles.link} accessibilityRole="button" onPress={() => setRestoring(true)}>
+              J’ai déjà une sauvegarde
+            </Text>
           </View>
         )}
 
@@ -129,6 +156,8 @@ function OnboardingForm() {
               <Pressable
                 key={t.id}
                 onPress={() => chooseTrack(t.id)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: track === t.id }}
                 style={[styles.option, track === t.id && { borderColor: colors.primary, backgroundColor: colors.primarySoft }]}
               >
                 <Text style={{ fontSize: 30 }}>{t.emoji}</Text>
@@ -162,6 +191,8 @@ function OnboardingForm() {
               <Pressable
                 key={g}
                 onPress={() => setGoal(g)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: goal === g }}
                 style={[styles.option, goal === g && { borderColor: colors.primary, backgroundColor: colors.primarySoft }]}
               >
                 <View style={{ flex: 1 }}>
@@ -188,12 +219,23 @@ function OnboardingForm() {
             </Text>
             <View style={styles.hours}>
               {REMINDER_HOURS.map((h) => (
-                <Pressable key={h} onPress={() => setReminderHour(h)} style={[styles.hour, reminderHour === h && styles.hourOn]}>
-                  <Text style={[styles.hourText, reminderHour === h && { color: '#fff' }]}>{formatHour(h)}</Text>
+                <Pressable
+                  key={h}
+                  onPress={() => setReminderHour(h)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: reminderHour === h }}
+                  style={[styles.hour, reminderHour === h && styles.hourOn]}
+                >
+                  <Text style={[styles.hourText, reminderHour === h && styles.hourTextOn]}>{formatHour(h)}</Text>
                 </Pressable>
               ))}
-              <Pressable onPress={() => setReminderHour(null)} style={[styles.hour, reminderHour === null && styles.hourOn]}>
-                <Text style={[styles.hourText, reminderHour === null && { color: '#fff' }]}>Pas de rappel</Text>
+              <Pressable
+                onPress={() => setReminderHour(null)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: reminderHour === null }}
+                style={[styles.hour, reminderHour === null && styles.hourOn]}
+              >
+                <Text style={[styles.hourText, reminderHour === null && styles.hourTextOn]}>Pas de rappel</Text>
               </Pressable>
             </View>
             <Button label="C’est parti ! 🚀" disabled={saving} onPress={finish} />
@@ -205,43 +247,46 @@ function OnboardingForm() {
   );
 }
 
-const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: colors.bg },
-  dots: { flexDirection: 'row', gap: 6, justifyContent: 'center', marginVertical: 8 },
-  dot: { width: 28, height: 6, borderRadius: 3, backgroundColor: colors.border },
-  hero: { fontSize: 64, textAlign: 'center', marginTop: 24 },
-  label: { fontSize: 15, fontWeight: '700', color: colors.text, marginTop: 8 },
-  input: {
-    borderWidth: 2,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 17,
-    backgroundColor: colors.card,
-    color: colors.text,
-  },
-  option: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    borderWidth: 2,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    padding: 14,
-    backgroundColor: colors.card,
-  },
-  optionTitle: { fontSize: 17, fontWeight: '800', color: colors.text },
-  goalXp: { fontSize: 16, fontWeight: '800', color: colors.primary },
-  hours: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  hour: {
-    borderWidth: 2,
-    borderColor: colors.border,
-    borderRadius: radius.sm,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    backgroundColor: colors.card,
-  },
-  hourOn: { backgroundColor: colors.primary, borderColor: colors.primary },
-  hourText: { fontWeight: '800', color: colors.text },
-});
+const makeStyles = (colors: Colors) =>
+  StyleSheet.create({
+    flex: { flex: 1, backgroundColor: colors.bg },
+    dots: { flexDirection: 'row', gap: 6, justifyContent: 'center', marginVertical: 8 },
+    dot: { width: 28, height: 6, borderRadius: 3, backgroundColor: colors.border },
+    hero: { fontSize: 64, textAlign: 'center', marginTop: 24 },
+    label: { fontSize: 15, fontWeight: '700', color: colors.text, marginTop: 8 },
+    input: {
+      borderWidth: 2,
+      borderColor: colors.border,
+      borderRadius: radius.md,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      fontSize: 17,
+      backgroundColor: colors.card,
+      color: colors.text,
+    },
+    option: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 14,
+      borderWidth: 2,
+      borderColor: colors.border,
+      borderRadius: radius.md,
+      padding: 14,
+      backgroundColor: colors.card,
+    },
+    optionTitle: { fontSize: 17, fontWeight: '800', color: colors.text },
+    link: { fontSize: 15, fontWeight: '700', color: colors.primaryDark, textAlign: 'center', textDecorationLine: 'underline', paddingVertical: 8 },
+    goalXp: { fontSize: 16, fontWeight: '800', color: colors.primary },
+    hours: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    hour: {
+      borderWidth: 2,
+      borderColor: colors.border,
+      borderRadius: radius.sm,
+      paddingVertical: 10,
+      paddingHorizontal: 14,
+      backgroundColor: colors.card,
+    },
+    hourOn: { backgroundColor: colors.primary, borderColor: colors.primary },
+    hourText: { fontWeight: '800', color: colors.text },
+    hourTextOn: { color: textOn(colors.primary) },
+  });

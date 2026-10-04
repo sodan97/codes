@@ -2,14 +2,18 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { getSubjects } from '../data/catalog';
 import type { TrackId } from '../data/types';
-import { colors, radius } from '../theme';
-import { styles as ui } from './ui';
+import { useStyles, useTheme } from '../state/theme';
+import { radius, textOn, type Colors } from '../theme';
+import { useUi } from './ui';
 
 /**
  * Choix des matières passées par l'élève : une ligne par matière de l'examen, cochée si elle est visible.
  * Au moins une matière reste toujours cochée.
  */
 export function SubjectPicker({ track, hidden, onChange }: { track: TrackId; hidden: string[]; onChange: (hidden: string[]) => void }) {
+  const { colors } = useTheme();
+  const styles = useStyles(makeStyles);
+  const ui = useUi();
   const subjects = getSubjects(track);
   const visibleCount = subjects.filter((s) => !hidden.includes(s.id)).length;
 
@@ -38,7 +42,7 @@ export function SubjectPicker({ track, hidden, onChange }: { track: TrackId; hid
             <Text style={{ fontSize: 24 }}>{s.icon}</Text>
             <Text style={[styles.name, !checked && { color: colors.muted }]}>{s.name}</Text>
             <View style={[styles.box, checked && { backgroundColor: colors.primary, borderColor: colors.primary }]}>
-              {checked && <Text style={styles.check}>✓</Text>}
+              {checked && <Text style={[styles.check, { color: textOn(colors.primary) }]}>✓</Text>}
             </View>
           </Pressable>
         );
@@ -47,19 +51,20 @@ export function SubjectPicker({ track, hidden, onChange }: { track: TrackId; hid
   );
 }
 
-const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    borderWidth: 2,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    backgroundColor: colors.card,
-  },
-  name: { flex: 1, fontSize: 16, fontWeight: '700', color: colors.text },
-  box: { width: 26, height: 26, borderRadius: 6, borderWidth: 2, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
-  check: { color: '#fff', fontWeight: '900', fontSize: 15 },
-});
+const makeStyles = (colors: Colors) =>
+  StyleSheet.create({
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      borderWidth: 2,
+      borderColor: colors.border,
+      borderRadius: radius.md,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      backgroundColor: colors.card,
+    },
+    name: { flex: 1, fontSize: 16, fontWeight: '700', color: colors.text },
+    box: { width: 26, height: 26, borderRadius: 6, borderWidth: 2, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+    check: { fontWeight: '900', fontSize: 15 },
+  });

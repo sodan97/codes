@@ -2,7 +2,11 @@ import { useEffect, useState, useSyncExternalStore, type ReactNode, type RefObje
 import { AccessibilityInfo, Animated, Pressable, ScrollView, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 
-import { colors, radius, shadow } from '../theme';
+import { useStyles, useTheme } from '../state/theme';
+import { accentText, radius, shadow, textOn, type Colors } from '../theme';
+
+/** Grands chiffres et pastilles : agrandis avec la taille de police du téléphone, mais pas au point de casser la mise en page. */
+export const MAX_FONT_SCALE = 1.4;
 
 export function Screen({
   children,
@@ -15,6 +19,7 @@ export function Screen({
   scroll?: boolean;
   scrollRef?: RefObject<ScrollView | null>;
 }) {
+  const styles = useUi();
   return (
     <SafeAreaView style={styles.screen} edges={edges}>
       {scroll ? (
@@ -57,10 +62,33 @@ export function useReduceMotion(): boolean {
   return useSyncExternalStore(subscribeReduceMotion, readReduceMotion, readReduceMotion);
 }
 
-export function Card({ children, style, onPress }: { children: ReactNode; style?: StyleProp<ViewStyle>; onPress?: () => void }) {
+/**
+ * Carte. Avec `onPress`, c'est un bouton pour TalkBack : `accessibilityLabel` résume alors son contenu
+ * (« Mathématiques, 3 fiches lues sur 8, maîtrise 40 % ») au lieu d'une lecture morceau par morceau.
+ */
+export function Card({
+  children,
+  style,
+  onPress,
+  accessibilityLabel,
+  accessibilityHint,
+}: {
+  children: ReactNode;
+  style?: StyleProp<ViewStyle>;
+  onPress?: () => void;
+  accessibilityLabel?: string;
+  accessibilityHint?: string;
+}) {
+  const styles = useUi();
   if (onPress) {
     return (
-      <Pressable onPress={onPress} style={({ pressed }) => [styles.card, style, pressed && { opacity: 0.85, transform: [{ scale: 0.99 }] }]}>
+      <Pressable
+        onPress={onPress}
+        accessibilityRole="button"
+        accessibilityLabel={accessibilityLabel}
+        accessibilityHint={accessibilityHint}
+        style={({ pressed }) => [styles.card, style, pressed && { opacity: 0.85, transform: [{ scale: 0.99 }] }]}
+      >
         {children}
       </Pressable>
     );
@@ -87,13 +115,17 @@ export function Button({
   color?: string;
   style?: StyleProp<ViewStyle>;
 }) {
+  const { colors } = useTheme();
+  const styles = useUi();
   const bg =
     variant === 'primary' ? (color ?? colors.primary) : variant === 'gold' ? colors.gold : variant === 'secondary' ? colors.card : 'transparent';
-  const fg = variant === 'primary' ? '#fff' : variant === 'gold' ? colors.text : (color ?? colors.primary);
+  // Fond plein : texte blanc ou sombre selon le contraste ; sinon le texte prend la couleur du bouton.
+  const fg = variant === 'primary' || variant === 'gold' ? textOn(bg) : accentText(color ?? colors.primary, colors);
   return (
     <Pressable
       testID={testID}
       accessibilityRole="button"
+      accessibilityState={{ disabled: !!disabled }}
       disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => [
@@ -110,7 +142,21 @@ export function Button({
   );
 }
 
-export function ProgressBar({ value, color = colors.primary, height = 8, track = colors.border }: { value: number; color?: string; height?: number; track?: string }) {
+/** Barre de progression, lue par TalkBack comme « {libellé}, {n} % ». */
+export function ProgressBar({
+  value,
+  color,
+  height = 8,
+  track,
+  accessibilityLabel,
+}: {
+  value: number;
+  color?: string;
+  height?: number;
+  track?: string;
+  accessibilityLabel?: string;
+}) {
+  const { colors } = useTheme();
   const target = Math.max(0, Math.min(1, value));
   const reduce = useReduceMotion();
   const [width] = useState(() => new Animated.Value(target));
@@ -125,12 +171,17 @@ export function ProgressBar({ value, color = colors.primary, height = 8, track =
     return () => animation.stop();
   }, [target, reduce, width]);
   return (
-    <View style={{ height, borderRadius: height, backgroundColor: track, overflow: 'hidden' }}>
+    <View
+      accessibilityRole="progressbar"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityValue={{ min: 0, max: 100, now: Math.round(target * 100) }}
+      style={{ height, borderRadius: height, backgroundColor: track ?? colors.border, overflow: 'hidden' }}
+    >
       <Animated.View
         style={{
           width: width.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }),
           height: '100%',
-          backgroundColor: color,
+          backgroundColor: color ?? colors.primary,
           borderRadius: height,
         }}
       />
@@ -138,15 +189,22 @@ export function ProgressBar({ value, color = colors.primary, height = 8, track =
   );
 }
 
-export function Pill({ label, color = colors.primary, bg }: { label: string; color?: string; bg?: string }) {
+/** Pastille. `color` (#RRGGBB) est la couleur du texte : prendre une couleur du thème ou passer par accentText. */
+export function Pill({ label, color, bg }: { label: string; color?: string; bg?: string }) {
+  const { colors } = useTheme();
+  const styles = useUi();
+  const fg = accentText(color ?? colors.primary, colors);
   return (
-    <View style={[styles.pill, { backgroundColor: bg ?? color + '1A' }]}>
-      <Text style={[styles.pillText, { color }]}>{label}</Text>
+    <View style={[styles.pill, { backgroundColor: bg ?? fg + '1A' }]}>
+      <Text style={[styles.pillText, { color: fg }]} maxFontSizeMultiplier={MAX_FONT_SCALE}>
+        {label}
+      </Text>
     </View>
   );
 }
 
 export function SectionTitle({ children, right }: { children: ReactNode; right?: ReactNode }) {
+  const styles = useUi();
   return (
     <View style={styles.sectionTitleRow}>
       <Text style={styles.sectionTitle}>{children}</Text>
@@ -155,19 +213,26 @@ export function SectionTitle({ children, right }: { children: ReactNode; right?:
   );
 }
 
-export const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.bg },
-  screenContent: { padding: 16, paddingBottom: 40, gap: 14, maxWidth: 720, width: '100%', alignSelf: 'center' },
-  card: { backgroundColor: colors.card, borderRadius: radius.md, padding: 16, ...shadow },
-  button: { paddingVertical: 14, paddingHorizontal: 18, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
-  buttonLabel: { fontSize: 16, fontWeight: '700' },
-  pill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, alignSelf: 'flex-start' },
-  pillText: { fontSize: 12, fontWeight: '700' },
-  sectionTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 },
-  sectionTitle: { fontSize: 18, fontWeight: '800', color: colors.text },
-  h1: { fontSize: 26, fontWeight: '800', color: colors.text },
-  h2: { fontSize: 20, fontWeight: '800', color: colors.text },
-  body: { fontSize: 15, lineHeight: 22, color: colors.text },
-  muted: { fontSize: 13, color: colors.muted },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-});
+const makeUi = (colors: Colors) =>
+  StyleSheet.create({
+    screen: { flex: 1, backgroundColor: colors.bg },
+    screenContent: { padding: 16, paddingBottom: 40, gap: 14, maxWidth: 720, width: '100%', alignSelf: 'center' },
+    card: { backgroundColor: colors.card, borderRadius: radius.md, padding: 16, ...shadow },
+    button: { paddingVertical: 14, paddingHorizontal: 18, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
+    buttonLabel: { fontSize: 16, fontWeight: '700' },
+    pill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, alignSelf: 'flex-start' },
+    pillText: { fontSize: 12, fontWeight: '700' },
+    sectionTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 },
+    sectionTitle: { fontSize: 18, fontWeight: '800', color: colors.text },
+    h1: { fontSize: 26, fontWeight: '800', color: colors.text },
+    h2: { fontSize: 20, fontWeight: '800', color: colors.text },
+    body: { fontSize: 15, lineHeight: 22, color: colors.text },
+    muted: { fontSize: 13, color: colors.muted },
+    row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  });
+
+/** Styles communs (titres, texte, cartes…) aux couleurs du thème courant : `const ui = useUi();`. */
+export function useUi() {
+  return useStyles(makeUi);
+}
+

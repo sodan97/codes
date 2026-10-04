@@ -5,6 +5,7 @@ import { getQuestion, getSubjects, type QuestionRef } from '../data/catalog';
 import type { Subject } from '../data/types';
 import type { MistakeEntry, Profile, ProgressState } from './gamification';
 import type { QuizContext } from './quizBuilder';
+import { chapterDueCount } from './srs';
 
 /** Matières de l'examen de l'élève, sans celles qu'il a masquées. */
 export function visibleSubjects(profile: Profile | null): Subject[] {
@@ -57,4 +58,30 @@ export function quizContext(state: ProgressState, today: string): QuizContext | 
     examLast: state.examLast,
     today,
   };
+}
+
+export interface DueCards {
+  /** Flashcards à revoir aujourd'hui, dans les matières visibles. */
+  total: number;
+  /** Détail par chapitre, les plus chargés d'abord (pour ouvrir directement le bon paquet). */
+  byChapter: { chapterId: string; subjectId: string; count: number }[];
+}
+
+/** Flashcards déjà vues dont l'échéance est arrivée (cartes du contenu actuel, matières visibles). */
+export function dueCards(state: ProgressState, today: string): DueCards {
+  const byChapter: DueCards['byChapter'] = [];
+  for (const subject of visibleSubjects(state.profile)) {
+    for (const chapter of subject.chapters) {
+      const count = chapterDueCount(chapter.id, chapter.flashcards, state.cards, today);
+      if (count > 0) byChapter.push({ chapterId: chapter.id, subjectId: subject.id, count });
+    }
+  }
+  byChapter.sort((a, b) => b.count - a.count);
+  return { total: byChapter.reduce((n, c) => n + c.count, 0), byChapter };
+}
+
+/** « 🧠 3 cartes à revoir » (null s'il n'y en a pas). */
+export function dueCardsText(n: number): string | null {
+  if (n <= 0) return null;
+  return `🧠 ${n} carte${n > 1 ? 's' : ''} à revoir`;
 }

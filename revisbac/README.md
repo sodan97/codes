@@ -2,7 +2,7 @@
 
 Application mobile de révision gamifiée pour les élèves sénégalais qui préparent le **BFEM** (3e) et le **Baccalauréat** (Terminale S et L).
 
-Fiches synthétiques, flashcards, quiz (QCM, vrai/faux, textes à trous), défi du jour à partager, révision express, erreurs revues à intervalles croissants, examens blancs chronométrés notés sur 20 avec diagnostic par chapitre, séries de jours, niveaux, badges et rappel quotidien. Tout fonctionne **hors-ligne**.
+Fiches synthétiques, flashcards, quiz (QCM, vrai/faux, textes à trous), défi du jour à partager, révision express, erreurs revues à intervalles croissants, examens blancs chronométrés notés sur 20 avec diagnostic par chapitre, quêtes du jour et coffre, étoiles de maîtrise par chapitre, flashcards en répétition espacée, reprise d'un quiz interrompu, code de sauvegarde pour changer de téléphone, mode sombre, séries de jours, niveaux, badges et rappel quotidien. Tout fonctionne **hors-ligne**, sans compte.
 
 ➡️ Le concept détaillé, les améliorations proposées et la feuille de route : [docs/CONCEPT.md](docs/CONCEPT.md).
 

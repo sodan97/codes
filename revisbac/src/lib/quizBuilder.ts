@@ -1,4 +1,4 @@
-import { getChapter, getSubject, getSubjects, isOptional, questionsOfSubject, type QuestionRef } from '../data/catalog';
+import { getChapter, getQuestion, getSubject, getSubjects, isOptional, questionsOfSubject, type QuestionRef } from '../data/catalog';
 import type { Chapter, Subject, TrackId } from '../data/types';
 import type { MistakeEntry, QuizMode } from './gamification';
 import { seededRandom, shuffle } from './random';
@@ -78,6 +78,35 @@ export function buildQuiz(mode: QuizMode, id: string | undefined, ctx: QuizConte
       }
       return { title: 'Défi du jour', questions: shuffle(picked, rand) };
     }
+  }
+}
+
+/**
+ * Reconstruit une session interrompue (voir resume.ts) à partir des ids de ses questions, dans le même ordre.
+ * Les ids disparus du contenu (relecture) sont ignorés. Titre, couleur et durée sont ceux de buildQuiz.
+ */
+export function rebuildSession(mode: QuizMode, id: string | undefined, questionIds: readonly string[]): QuizSession {
+  const questions = questionIds.map((qid) => getQuestion(qid)).filter((ref): ref is QuestionRef => !!ref);
+  switch (mode) {
+    case 'chapter': {
+      const ref = getChapter(id ?? '');
+      return { title: ref?.chapter.title ?? 'Quiz', color: ref?.subject.color, questions };
+    }
+    case 'exam': {
+      const subject = getSubject(id ?? '');
+      return {
+        title: subject ? `Examen blanc · ${subject.name}` : 'Examen blanc',
+        color: subject?.color,
+        questions,
+        timeLimit: questions.length * EXAM_SECONDS_PER_QUESTION,
+      };
+    }
+    case 'review':
+      return { title: 'Revoir mes erreurs', questions };
+    case 'express':
+      return { title: 'Révision express', questions };
+    case 'daily':
+      return { title: 'Défi du jour', questions };
   }
 }
 

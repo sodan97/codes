@@ -1,10 +1,15 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import type { FicheBlock } from '../data/types';
-import { colors, radius } from '../theme';
+import { useStyles, useTheme } from '../state/theme';
+import { accentText, radius, textOn, type Colors } from '../theme';
 
 /** Affiche un bloc de fiche avec un style propre à sa nature (formule, date, piège…). */
 export function FicheBlockView({ block, color }: { block: FicheBlock; color: string }) {
+  const { colors } = useTheme();
+  const styles = useStyles(makeStyles);
+  // Couleur de la matière pour le texte : lisible sur le fond clair comme sur le fond sombre.
+  const accent = accentText(color, colors);
   switch (block.kind) {
     case 'text':
       return <Text style={styles.text}>{block.text}</Text>;
@@ -14,7 +19,7 @@ export function FicheBlockView({ block, color }: { block: FicheBlock; color: str
           {block.title && <Text style={styles.listTitle}>{block.title}</Text>}
           {block.items.map((item, i) => (
             <View key={i} style={styles.bulletRow}>
-              <Text style={[styles.bullet, { color }]}>•</Text>
+              <Text style={[styles.bullet, { color: accent }]}>•</Text>
               <Text style={[styles.text, { flex: 1 }]}>{item}</Text>
             </View>
           ))}
@@ -23,7 +28,7 @@ export function FicheBlockView({ block, color }: { block: FicheBlock; color: str
     case 'formula':
       return (
         <View style={[styles.formula, { borderColor: color, backgroundColor: color + '0F' }]}>
-          {block.label && <Text style={[styles.formulaLabel, { color }]}>{block.label}</Text>}
+          {block.label && <Text style={[styles.formulaLabel, { color: accent }]}>{block.label}</Text>}
           <Text style={styles.formulaText} selectable>
             {block.formula}
           </Text>
@@ -41,7 +46,7 @@ export function FicheBlockView({ block, color }: { block: FicheBlock; color: str
       return (
         <View style={styles.dateRow}>
           <View style={[styles.dateBadge, { backgroundColor: color }]}>
-            <Text style={styles.dateText}>{block.date}</Text>
+            <Text style={[styles.dateText, { color: textOn(color) }]}>{block.date}</Text>
           </View>
           <Text style={[styles.text, { flex: 1 }]}>{block.event}</Text>
         </View>
@@ -74,20 +79,21 @@ export function FicheBlockView({ block, color }: { block: FicheBlock; color: str
   }
 }
 
-const styles = StyleSheet.create({
-  text: { fontSize: 15, lineHeight: 22, color: colors.text },
-  listTitle: { fontSize: 15, fontWeight: '700', color: colors.text },
-  bulletRow: { flexDirection: 'row', gap: 8 },
-  bullet: { fontSize: 18, lineHeight: 22, fontWeight: '900' },
-  formula: { borderWidth: 1.5, borderRadius: radius.sm, padding: 12, gap: 4 },
-  formulaLabel: { fontSize: 12, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5 },
-  formulaText: { fontSize: 18, fontWeight: '600', color: colors.text, lineHeight: 26 },
-  note: { fontSize: 13, color: colors.muted, lineHeight: 18 },
-  definition: { borderLeftWidth: 4, paddingLeft: 12, gap: 2 },
-  term: { fontSize: 15, fontWeight: '800', color: colors.text },
-  dateRow: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
-  dateBadge: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, minWidth: 64, alignItems: 'center' },
-  dateText: { color: '#fff', fontWeight: '800', fontSize: 13 },
-  callout: { borderRadius: radius.sm, padding: 12, gap: 4 },
-  calloutTitle: { fontSize: 13, fontWeight: '800', color: colors.primaryDark },
-});
+const makeStyles = (colors: Colors) =>
+  StyleSheet.create({
+    text: { fontSize: 15, lineHeight: 22, color: colors.text },
+    listTitle: { fontSize: 15, fontWeight: '700', color: colors.text },
+    bulletRow: { flexDirection: 'row', gap: 8 },
+    bullet: { fontSize: 18, lineHeight: 22, fontWeight: '900' },
+    formula: { borderWidth: 1.5, borderRadius: radius.sm, padding: 12, gap: 4 },
+    formulaLabel: { fontSize: 12, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5 },
+    formulaText: { fontSize: 18, fontWeight: '600', color: colors.text, lineHeight: 26 },
+    note: { fontSize: 13, color: colors.muted, lineHeight: 18 },
+    definition: { borderLeftWidth: 4, paddingLeft: 12, gap: 2 },
+    term: { fontSize: 15, fontWeight: '800', color: colors.text },
+    dateRow: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
+    dateBadge: { borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, minWidth: 64, alignItems: 'center' },
+    dateText: { fontWeight: '800', fontSize: 13 },
+    callout: { borderRadius: radius.sm, padding: 12, gap: 4 },
+    calloutTitle: { fontSize: 13, fontWeight: '800', color: colors.primaryDark },
+  });

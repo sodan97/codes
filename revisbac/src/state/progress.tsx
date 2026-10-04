@@ -4,13 +4,17 @@ import { AppState } from 'react-native';
 
 import { dayKey } from '../lib/dates';
 import {
+  cardReview,
+  ensureQuests,
   ficheGain,
   flashcardsGain,
   initialState,
   migrate,
+  openChest,
   quizGain,
   rollDay,
   STATE_VERSION,
+  withProfile,
   type AnswerResult,
   type Profile,
   type ProgressState,
@@ -18,6 +22,7 @@ import {
   type Reward,
 } from '../lib/gamification';
 import { rescheduleReminders } from '../lib/reminders';
+import { clearLastFiche, clearSession } from './session';
 
 // La clé reste « v1 » pour ne rien perdre : la version du schéma est stockée dans l'état lui-même.
 const STORAGE_KEY = 'revisbac/progress/v1';
@@ -37,8 +42,18 @@ interface ProgressContextValue {
   updateProfile: (patch: Partial<Profile>) => void;
   markFicheRead: (chapterId: string, subjectId: string) => Reward | null;
   finishFlashcards: (subjectId: string, chapterId: string) => Reward;
-  /** `opts.day` : jour où la session a commencé (défi du jour commencé avant minuit = entraînement). */
-  finishQuiz: (mode: QuizMode, results: AnswerResult[], opts?: { chapterId?: string; subjectId?: string; day?: string }) => Reward;
+  /**
+   * Fin d'un quiz (efface aussi la session enregistrée pour la reprise).
+   * `opts.day` : jour où la session a commencé (défi du jour commencé avant minuit = entraînement).
+   * `opts.maxCombo` : plus longue suite de bonnes réponses (quête « Enchaîne 5 bonnes réponses »).
+   */
+  finishQuiz: (mode: QuizMode, results: AnswerResult[], opts?: { chapterId?: string; subjectId?: string; day?: string; maxCombo?: number }) => Reward;
+  /** Réponse à une flashcard (« Je savais » / « À revoir ») : suivi espacé de la carte, sans XP. `cardKey` : srs.cardKey(chapterId, card). */
+  reviewCard: (cardKey: string, knew: boolean) => void;
+  /** Ouvre le coffre du jour quand les 3 quêtes sont faites (null sinon). */
+  openChest: () => Reward | null;
+  /** Remplace toute la progression par une sauvegarde (backup.importCode) ; les rappels sont replanifiés. */
+  restore: (state: ProgressState) => void;
   reset: () => void;
 }
 
@@ -82,7 +97,7 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
     setLoaded(true);
   }, []);
 
-  const restore = useCallback(
+  const hydrate = useCallback(
     async (raw: string | null) => {
       let next = initialState();
       if (raw) {
@@ -114,8 +129,8 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
   );
 
   const load = useCallback(() => {
-    AsyncStorage.getItem(STORAGE_KEY).then(restore, fail);
-  }, [restore, fail]);
+    AsyncStorage.getItem(STORAGE_KEY).then(hydrate, fail);
+  }, [hydrate, fail]);
 
   useEffect(() => {
     load();
@@ -160,10 +175,10 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
       retryLoad: () => {
         load();
       },
-      setProfile: (profile) => commit({ ...ref.current, profile }),
+      setProfile: (profile) => commit(withProfile(ref.current, profile, dayKey())),
       updateProfile: (patch) => {
         const profile = ref.current.profile;
-        if (profile) commit({ ...ref.current, profile: { ...profile, ...patch } });
+        if (profile) commit(withProfile(ref.current, { ...profile, ...patch }, dayKey()));
       },
       markFicheRead: (chapterId, subjectId) => {
         const gain = ficheGain(ref.current, chapterId, subjectId, dayKey());
@@ -179,9 +194,30 @@ export function ProgressProvider({ children }: { children: ReactNode }) {
       finishQuiz: (mode, results, opts) => {
         const { state: next, reward } = quizGain(ref.current, mode, results, opts);
         commit(next);
+        clearSession();
         return reward;
       },
-      reset: () => commit(initialState()),
+      reviewCard: (cardKey, knew) => {
+        const next = cardReview(ref.current, cardKey, knew, dayKey());
+        if (next !== ref.current) commit(next);
+      },
+      openChest: () => {
+        const gain = openChest(ref.current, dayKey());
+        if (!gain) return null;
+        commit(gain.state);
+        return gain.reward;
+      },
+      restore: (next) => {
+        const today = dayKey();
+        commit(ensureQuests(rollDay(next, today), today));
+        clearSession();
+        clearLastFiche();
+      },
+      reset: () => {
+        commit(initialState());
+        clearSession();
+        clearLastFiche();
+      },
     }),
     [state, loaded, loadError, commit, load],
   );

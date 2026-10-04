@@ -20,6 +20,7 @@ import {
   rollDay,
   type AnswerResult,
   type ProgressState,
+  type Reward,
 } from '../src/lib/gamification';
 import { dailyShareText, examShareText } from '../src/lib/shareText';
 
@@ -34,6 +35,8 @@ const ko = (id: string): AnswerResult => ({ questionId: id, subjectId: 'maths-s'
 const skip = (id: string): AnswerResult => ({ questionId: id, subjectId: 'maths-s', correct: false, skipped: true });
 
 const gain = (s: ProgressState, xp: number, day: string) => applyGain(s, xp, [], () => {}, day).state;
+/** XP hors quêtes du jour (celles-ci sont testées dans quests.test.ts). */
+const baseXp = (r: { reward: Reward }) => r.reward.xp - r.reward.messages.filter((m) => m.startsWith('🗺️')).length * XP.quest;
 
 test('niveaux : seuils 0 / 100 / 300 / 600', () => {
   assert.equal(levelInfo(0).level, 1);
@@ -84,7 +87,7 @@ test('bonus d’objectif du jour une seule fois, et compteurs remis à zéro le 
 
 test('quiz : XP, sans faute, défi du jour unique, erreurs mémorisées', () => {
   let r = quizGain(withProfile(), 'chapter', [ok('a'), ok('b'), ok('c'), ok('d'), ok('e')], { chapterId: 'maths-s-suites' }, '2026-10-01');
-  assert.equal(r.reward.xp, 5 * XP.correctAnswer + XP.perfectQuiz + XP.dailyGoalReached);
+  assert.equal(baseXp(r), 5 * XP.correctAnswer + XP.perfectQuiz + XP.dailyGoalReached);
   assert.equal(r.state.quizBest['maths-s-suites'], 100);
   assert.ok(r.reward.newBadges.some((b) => b.id === 'perfect'));
 
@@ -206,14 +209,14 @@ test('quiz de chapitre refait le même jour : XP divisés par 2, sans bonus ni c
   start.profile!.dailyGoal = 150; // pas de bonus d'objectif dans ce test
   const first = quizGain(start, 'chapter', [ok('a'), ko('b'), ok('c'), ok('d'), ok('e')], { chapterId: 'ch' }, '2026-10-01');
   const again = quizGain(first.state, 'chapter', five, { chapterId: 'ch' }, '2026-10-01');
-  assert.equal(again.reward.xp, Math.floor((5 * XP.correctAnswer) / 2));
+  assert.equal(baseXp(again), Math.floor((5 * XP.correctAnswer) / 2));
   assert.ok(again.reward.messages.includes('XP réduits de moitié : tu as déjà fait ce quiz aujourd’hui'));
   assert.equal(again.state.quizCount, first.state.quizCount);
   assert.equal(again.state.perfectCount, 0);
   assert.equal(again.state.quizBest.ch, 100);
   // Le lendemain, barème normal.
   const nextDay = quizGain(again.state, 'chapter', five, { chapterId: 'ch' }, '2026-10-02');
-  assert.equal(nextDay.reward.xp, 5 * XP.correctAnswer + XP.perfectQuiz);
+  assert.equal(baseXp(nextDay), 5 * XP.correctAnswer + XP.perfectQuiz);
 });
 
 test('examen blanc : bonus une fois par jour et par matière, historique limité à 5 notes', () => {
@@ -233,11 +236,11 @@ test('examen blanc : bonus une fois par jour et par matière, historique limité
 
 test('flashcards : +5 XP une fois par jour et par chapitre', () => {
   const first = flashcardsGain(withProfile(), 'maths-s', 'ch', '2026-10-01');
-  assert.equal(first.reward.xp, XP.flashcards);
+  assert.equal(baseXp(first), XP.flashcards);
   const again = flashcardsGain(first.state, 'maths-s', 'ch', '2026-10-01');
   assert.equal(again.reward.xp, 0);
   assert.deepEqual(again.reward.messages, ['Paquet déjà terminé aujourd’hui : pas d’XP, mais bravo pour la révision !']);
-  assert.equal(flashcardsGain(again.state, 'maths-s', 'ch', '2026-10-02').reward.xp, XP.flashcards);
+  assert.equal(baseXp(flashcardsGain(again.state, 'maths-s', 'ch', '2026-10-02')), XP.flashcards);
 });
 
 test('toute activité terminée prolonge la série, même avec 0 bonne réponse', () => {

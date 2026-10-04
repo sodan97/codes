@@ -5,7 +5,9 @@ import { ActivityIndicator, Alert, Animated, Platform, Pressable, ScrollView, St
 
 import { Countdown } from '../components/Countdown';
 import { QuestionView } from '../components/QuestionView';
-import { Button, Card, Pill, ProgressBar, Screen, styles as ui, useReduceMotion } from '../components/ui';
+import { RewardModal } from '../components/RewardModal';
+import { ShareButton } from '../components/ShareButton';
+import { Button, Card, MAX_FONT_SCALE, Pill, ProgressBar, Screen, useReduceMotion, useUi } from '../components/ui';
 import { getSubject, getTrack, type QuestionRef } from '../data/catalog';
 import type { Chapter } from '../data/types';
 import { dayKey } from '../lib/dates';
@@ -22,10 +24,24 @@ import {
   type Reward,
 } from '../lib/gamification';
 import { buildQuiz, EXPRESS_SIZE, type QuizSession } from '../lib/quizBuilder';
+import {
+  gradeSaved,
+  isPendingOtherExam,
+  matchesSession,
+  QUIT_KEPT_MESSAGE,
+  remainingMs,
+  restoreSession,
+  resumeButtonLabel,
+  resumeDecision,
+  type RestoredSession,
+  type SavedSession,
+} from '../lib/resume';
 import { quizContext } from '../lib/selectors';
-import { dailyShareText, examShareText, share } from '../lib/share';
+import { dailyShareText, examShareText } from '../lib/share';
 import { useProgress } from '../state/progress';
-import { colors, nativeDriver, radius } from '../theme';
+import { clearSession, loadSession, saveSession } from '../state/session';
+import { useStyles, useTheme } from '../state/theme';
+import { accentText, nativeDriver, radius, type Colors } from '../theme';
 
 const MODES: QuizMode[] = ['chapter', 'daily', 'exam', 'review', 'express'];
 
@@ -37,18 +53,119 @@ function exitQuiz() {
 
 export default function QuizScreen() {
   // `n` : jeton qui force une nouvelle session (« ⚡ Encore 5 ? »).
-  const params = useLocalSearchParams<{ mode?: string; id?: string; n?: string }>();
+  // `resume=1` : reprise demandée depuis l'accueil, sans redemander « Reprendre ou Recommencer ».
+  const params = useLocalSearchParams<{ mode?: string; id?: string; n?: string; resume?: string }>();
   const mode: QuizMode = MODES.includes(params.mode as QuizMode) ? (params.mode as QuizMode) : 'chapter';
   const { state, loaded, loadError } = useProgress();
-  if (!loaded) return <ActivityIndicator color={colors.primary} style={{ flex: 1 }} />;
+  const { colors } = useTheme();
+  if (!loaded) return <ActivityIndicator color={colors.primary} style={{ flex: 1, backgroundColor: colors.bg }} />;
   // Lecture impossible : l'écran d'accueil propose de réessayer, surtout pas d'onboarding.
   if (loadError) return <Redirect href="/" />;
   // Lien profond ouvert avant l'onboarding.
   if (!state.profile) return <Redirect href="/onboarding" />;
-  return <QuizSessionScreen key={`${mode}:${params.id ?? ''}:${params.n ?? ''}`} mode={mode} id={params.id} />;
+  return <QuizSessionScreen key={`${mode}:${params.id ?? ''}:${params.n ?? ''}`} mode={mode} id={params.id} resume={params.resume === '1'} />;
 }
 
-function QuizSessionScreen({ mode, id }: { mode: QuizMode; id?: string }) {
+/** Ce que l'écran propose à l'ouverture, selon la session enregistrée. */
+type Start =
+  | { kind: 'fresh' }
+  /** Choix « Reprendre » / « Recommencer » affiché dans l'écran. */
+  | { kind: 'ask'; restored: RestoredSession }
+  | { kind: 'resume'; restored: RestoredSession }
+  /** Temps d'examen écoulé ou toutes les questions traitées : noter tout de suite. */
+  | { kind: 'grade'; restored: RestoredSession }
+  /** Un examen blanc est en cours ailleurs : le reprendre, ou le noter avant de commencer ce quiz. `done` : temps écoulé ou tout répondu. */
+  | { kind: 'other'; restored: RestoredSession; done: boolean };
+
+/** Décide de la reprise ; efface la session enregistrée quand elle ne peut plus servir. */
+function startFor(saved: SavedSession | null, mode: QuizMode, id: string | undefined, resume: boolean): Start {
+  // Examen blanc en cours : il ne doit pas être écrasé par la première réponse de ce quiz sans que l'élève ait choisi.
+  if (saved && isPendingOtherExam(saved, mode, id, Date.now())) {
+    const restored = restoreSession(saved);
+    if (restored && restored.answered > 0) {
+      const done = resumeDecision(saved, Date.now()) !== 'resume' || restored.order.length === 0;
+      return { kind: 'other', restored, done };
+    }
+  }
+  // Autre session (quiz) : elle reste proposée sur l'accueil jusqu'à la première réponse de celui-ci.
+  if (!saved || !matchesSession(saved, mode, id)) return { kind: 'fresh' };
+  const decision = resumeDecision(saved, Date.now());
+  const restored = decision === 'discard' ? null : restoreSession(saved);
+  if (!restored) {
+    clearSession();
+    return { kind: 'fresh' };
+  }
+  if (decision !== 'resume' || restored.order.length === 0) return { kind: 'grade', restored };
+  return { kind: resume ? 'resume' : 'ask', restored };
+}
+
+function QuizSessionScreen({ mode, id, resume }: { mode: QuizMode; id?: string; resume: boolean }) {
+  const { colors } = useTheme();
+  const { state, finishQuiz } = useProgress();
+  const [start, setStart] = useState<Start | null>(null);
+  // Note de l'examen blanc en cours, noté avant de commencer ce quiz.
+  const [graded, setGraded] = useState<Reward | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    void loadSession().then((saved) => {
+      if (active) setStart(startFor(saved, mode, id, resume));
+    });
+    return () => {
+      active = false;
+    };
+  }, [mode, id, resume]);
+
+  if (!start) return <ActivityIndicator color={colors.primary} style={{ flex: 1, backgroundColor: colors.bg }} />;
+  if (start.kind === 'fresh') {
+    return (
+      <>
+        <FreshQuiz mode={mode} id={id} />
+        <RewardModal
+          reward={graded}
+          onClose={() => setGraded(null)}
+          haptics={state.profile?.haptics ?? true}
+          icon="📝"
+          title="Ton examen blanc est noté"
+        />
+      </>
+    );
+  }
+  if (start.kind === 'other') {
+    const { restored } = start;
+    return (
+      <OtherExamChoice
+        restored={restored}
+        done={start.done}
+        onGrade={() => {
+          // finishQuiz efface aussi la session enregistrée : ce quiz peut commencer.
+          const g = gradeSaved(restored);
+          const note = examNote(g.results.filter((r) => r.correct).length, g.results.length);
+          const r = finishQuiz(g.mode, g.results, g.opts);
+          setGraded({ ...r, messages: [`${restored.session.title} : ${formatNote(note)}/20 · ${mention(note)}`, ...r.messages] });
+          setStart({ kind: 'fresh' });
+        }}
+      />
+    );
+  }
+  if (start.kind === 'ask') {
+    return (
+      <ResumeChoice
+        restored={start.restored}
+        onResume={() => setStart({ kind: 'resume', restored: start.restored })}
+        onRestart={() => {
+          clearSession();
+          setStart({ kind: 'fresh' });
+        }}
+      />
+    );
+  }
+  return <RestoredQuiz restored={start.restored} grade={start.kind === 'grade'} />;
+}
+
+/** Nouvelle session, tirée au montage. */
+function FreshQuiz({ mode, id }: { mode: QuizMode; id?: string }) {
+  const ui = useUi();
   const { state } = useProgress();
   // Jour du début de la session : un défi commencé avant minuit et fini après reste celui de ce jour-là.
   const [day] = useState(() => dayKey());
@@ -69,49 +186,148 @@ function QuizSessionScreen({ mode, id }: { mode: QuizMode; id?: string }) {
       </Screen>
     );
   }
+  return <QuizRunner mode={mode} id={id} session={session} practice={practice} day={day} />;
+}
+
+/** Session reprise (ou notée tout de suite), reconstruite depuis la sauvegarde. */
+function RestoredQuiz({ restored, grade }: { restored: RestoredSession; grade: boolean }) {
+  const { state } = useProgress();
+  const { saved } = restored;
+  // Figé au montage : le défi devient « relevé » dès la fin de cette session.
+  const [practice] = useState(() => saved.mode === 'daily' && todayStats(state, saved.day).challengeDone);
   return (
     <QuizRunner
-      mode={mode}
-      session={session}
+      mode={saved.mode}
+      id={saved.id ?? undefined}
+      session={restored.session}
       practice={practice}
-      day={day}
-      subjectId={mode === 'exam' ? id : undefined}
-      chapterId={mode === 'chapter' ? id : undefined}
+      day={saved.day}
+      restored={restored}
+      autoFinish={grade}
     />
+  );
+}
+
+/** Durée restante lisible : « 7 min », « moins d'une minute ». */
+function minutesText(ms: number): string {
+  const min = Math.floor(ms / 60_000);
+  return min < 1 ? 'moins d’une minute' : `${min} min`;
+}
+
+/** Choix affiché à l'ouverture d'un quiz interrompu : reprendre là où on en était, ou recommencer. */
+function ResumeChoice({ restored, onResume, onRestart }: { restored: RestoredSession; onResume: () => void; onRestart: () => void }) {
+  const { colors } = useTheme();
+  const ui = useUi();
+  const { saved, session, answered, total } = restored;
+  const color = session.color ?? colors.primary;
+  const isExam = saved.mode === 'exam';
+  const [left] = useState(() => remainingMs(saved, Date.now()));
+  return (
+    <Screen edges={['bottom']}>
+      <Stack.Screen options={{ title: session.title }} />
+      <Card style={{ gap: 10 }}>
+        <Text style={ui.h2} accessibilityRole="header">
+          On reprend là où tu en étais ?
+        </Text>
+        <Text style={ui.body}>
+          {session.title} : {answered}/{total} {isExam ? 'questions répondues' : 'questions faites'}.
+        </Text>
+        <ProgressBar value={answered / total} color={color} height={10} accessibilityLabel="Questions déjà faites" />
+        {left !== null && (
+          <Text style={[ui.body, { fontWeight: '700' }]}>
+            ⏱️ Le chrono a continué : il te reste {minutesText(left)}.
+          </Text>
+        )}
+        <Button label={`▶ ${resumeButtonLabel(restored)}`} color={color} onPress={onResume} />
+        <Button label="Recommencer" variant="secondary" color={color} onPress={onRestart} />
+        <Text style={ui.muted}>
+          {isExam
+            ? 'Recommencer efface tes réponses et lance un nouvel examen blanc.'
+            : 'Recommencer efface tes réponses de cette série et repart de zéro.'}
+        </Text>
+      </Card>
+    </Screen>
+  );
+}
+
+/** Ouverture d'un autre quiz pendant un examen blanc en cours : le reprendre, ou le noter avant de commencer. */
+function OtherExamChoice({ restored, done, onGrade }: { restored: RestoredSession; done: boolean; onGrade: () => void }) {
+  const { colors } = useTheme();
+  const ui = useUi();
+  const { saved, session, answered, total } = restored;
+  const color = session.color ?? colors.primary;
+  const [left] = useState(() => remainingMs(saved, Date.now()));
+  // Temps écoulé : l'écran de l'examen le note tout de suite ; sinon il reprend sans redemander.
+  const openExam = () =>
+    router.replace({ pathname: '/quiz', params: { mode: 'exam', ...(saved.id ? { id: saved.id } : {}), ...(done ? {} : { resume: '1' }) } });
+  return (
+    <Screen edges={['bottom']}>
+      <Stack.Screen options={{ title: 'Examen blanc en cours' }} />
+      <Card style={{ gap: 10 }}>
+        <Text style={ui.h2} accessibilityRole="header">
+          Tu as un examen blanc en cours
+        </Text>
+        <Text style={ui.body}>
+          {session.title} : {answered}/{total} questions répondues.
+        </Text>
+        <ProgressBar value={answered / total} color={color} height={10} accessibilityLabel="Questions déjà répondues" />
+        <Text style={[ui.body, { fontWeight: '700' }]}>
+          {done || left === null ? '⏱️ Le temps est écoulé : il ne reste plus qu’à le noter.' : `⏱️ Le chrono continue : il te reste ${minutesText(left)}.`}
+        </Text>
+        <Button label={done ? '📝 Voir ma note' : '▶ Reprendre l’examen'} color={color} onPress={openExam} />
+        <Button label="Le noter et commencer ce quiz" variant="secondary" color={color} onPress={onGrade} />
+        <Text style={ui.muted}>Les questions sans réponse comptent comme non traitées.</Text>
+      </Card>
+    </Screen>
   );
 }
 
 function QuizRunner({
   mode,
+  id,
   session,
   practice,
   day,
-  chapterId,
-  subjectId,
+  restored,
+  autoFinish = false,
 }: {
   mode: QuizMode;
+  /** Chapitre (quiz de chapitre) ou matière (examen blanc). */
+  id?: string;
   session: QuizSession;
   practice: boolean;
   day: string;
-  chapterId?: string;
-  subjectId?: string;
+  /** Session reprise : file, réponses, combo et échéance de la sauvegarde. */
+  restored?: RestoredSession;
+  /** Noter tout de suite la session reprise (temps écoulé ou toutes les questions traitées). */
+  autoFinish?: boolean;
 }) {
+  const { colors } = useTheme();
+  const styles = useStyles(makeStyles);
+  const ui = useUi();
   const { state, finishQuiz } = useProgress();
   const navigation = useNavigation();
   const haptics = state.profile?.haptics ?? true;
   const isExam = mode === 'exam';
+  const chapterId = mode === 'chapter' ? id : undefined;
+  const subjectId = isExam ? id : undefined;
   const total = session.questions.length;
   // File des questions restantes (indices dans session.questions) : « Passer » renvoie la question au bout.
-  const [order, setOrder] = useState(() => session.questions.map((_, i) => i));
+  const [order, setOrder] = useState(() => restored?.order ?? session.questions.map((_, i) => i));
   // Réponse donnée à chaque question (null = pas encore répondu).
-  const answers = useRef<(boolean | null)[]>(session.questions.map(() => null));
-  const [combo, setCombo] = useState(0);
-  // Une réponse a été validée : quitter fait perdre la série en cours.
-  const [touched, setTouched] = useState(false);
+  const answers = useRef<(boolean | null)[]>(restored ? [...restored.answers] : session.questions.map(() => null));
+  // Suite de bonnes réponses en cours et record de la session (quête « Enchaîne 5 bonnes réponses »).
+  const comboRef = useRef(restored?.saved.combo ?? 0);
+  const maxCombo = useRef(restored?.saved.maxCombo ?? 0);
+  const [combo, setCombo] = useState(restored?.saved.combo ?? 0);
+  // Début de la session (fixé à la première sauvegarde, ou au départ du chrono).
+  const startedAt = useRef<number | null>(restored?.saved.startedAt ?? null);
+  // Une réponse a été validée : la sortie est confirmée (la progression reste gardée).
+  const [touched, setTouched] = useState((restored?.answered ?? 0) > 0);
   const [results, setResults] = useState<AnswerResult[]>([]);
   const [reward, setReward] = useState<Reward | null>(null);
   // Examen blanc : échéance fixée au tap sur « Commencer » (null tant que l'introduction est affichée).
-  const [deadline, setDeadline] = useState<number | null>(null);
+  const [deadline, setDeadline] = useState<number | null>(restored?.saved.deadline ?? null);
   const finished = useRef(false);
   const scrollRef = useRef<ScrollView>(null);
   const answered = total - order.length;
@@ -128,8 +344,42 @@ function QuizRunner({
       return answer === null ? { ...base, correct: false, skipped: true } : { ...base, correct: answer };
     });
     setResults(all);
-    setReward(finishQuiz(mode, all, { chapterId, subjectId, day }));
+    // finishQuiz efface aussi la session enregistrée.
+    setReward(finishQuiz(mode, all, { chapterId, subjectId, day, maxCombo: maxCombo.current }));
   }, [session, finishQuiz, mode, chapterId, subjectId, day]);
+
+  // Reprise d'une session à noter tout de suite (temps d'examen écoulé pendant que l'appli était fermée…).
+  useEffect(() => {
+    if (autoFinish) finish();
+  }, [autoFinish, finish]);
+
+  /** Enregistre la session pour pouvoir la reprendre après une interruption (sans attendre l'écriture). */
+  const persist = (queue: number[], end: number | null = deadline) => {
+    if (finished.current) return;
+    startedAt.current ??= Date.now();
+    saveSession({
+      mode,
+      id: id ?? null,
+      day,
+      questionIds: session.questions.map((q) => q.question.id),
+      order: queue,
+      answers: [...answers.current],
+      startedAt: startedAt.current,
+      ...(end !== null ? { deadline: end } : {}),
+      combo: comboRef.current,
+      maxCombo: maxCombo.current,
+    });
+  };
+
+  /** Réponse validée à la question en tête de file : comptée et enregistrée une seule fois. */
+  const record = (correct: boolean) => {
+    const index = order[0];
+    if (index === undefined || answers.current[index] !== null) return;
+    answers.current[index] = correct;
+    comboRef.current = correct ? comboRef.current + 1 : 0;
+    maxCombo.current = Math.max(maxCombo.current, comboRef.current);
+    persist(order.slice(1));
+  };
 
   // Alerte « Quitter ? » affichée : une expiration du chrono est mise en attente.
   const quitPrompt = useRef(false);
@@ -139,16 +389,18 @@ function QuizRunner({
     else finish();
   }, [finish]);
 
-  // Sortie protégée (flèche de l'en-tête, retour Android) dès que l'élève a commencé, jusqu'aux résultats.
+  // Sortie confirmée (flèche de l'en-tête, retour Android) dès que l'élève a commencé, jusqu'aux résultats.
+  // La session reste enregistrée : l'élève pourra reprendre.
   const started = isExam ? deadline !== null : touched || answered > 0;
   usePreventRemove(started && !reward, ({ data }) => {
     const leave = () => navigation.dispatch(data.action);
     const [title, message, stay] = isExam
-      ? ['Quitter l’examen ?', 'Il ne sera pas noté et tes réponses seront perdues.', 'Continuer l’examen']
-      : ['Quitter le quiz ?', 'Tes réponses de cette série ne seront pas comptées.', 'Continuer le quiz'];
+      ? ['Quitter l’examen ?', `${QUIT_KEPT_MESSAGE} Le chrono continue de tourner pendant ce temps.`, 'Continuer l’examen']
+      : ['Quitter le quiz ?', QUIT_KEPT_MESSAGE, 'Continuer le quiz'];
     if (Platform.OS === 'web') {
-      // Alert n'affiche rien sur le web.
-      if (globalThis.confirm?.(`${title}\n${message}`)) leave();
+      // Pas de boîte de confirmation fiable sur le web (Alert n'y affiche rien, confirm() peut être bloqué
+      // dans un cadre) : la session étant gardée, l'élève sort directement et pourra reprendre.
+      leave();
       return;
     }
     quitPrompt.current = true;
@@ -163,7 +415,6 @@ function QuizRunner({
         { text: stay, style: 'cancel', onPress: stayHere },
         {
           text: 'Quitter',
-          style: 'destructive',
           onPress: () => {
             quitPrompt.current = false;
             leave();
@@ -174,15 +425,17 @@ function QuizRunner({
     );
   });
 
-  // Correction affichée : on fait défiler pour que « Continuer » soit visible.
-  const onChecked = useCallback(() => {
+  // Correction affichée : la réponse est validée (on l'enregistre) et on fait défiler jusqu'à « Continuer ».
+  const onChecked = (correct: boolean) => {
     setTouched(true);
+    record(correct);
     requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true }));
-  }, []);
+  };
 
   const next = (correct: boolean) => {
-    answers.current[order[0]] = correct;
-    setCombo(correct ? combo + 1 : 0);
+    // Examen blanc : pas de correction, la réponse est validée ici.
+    record(correct);
+    setCombo(comboRef.current);
     const rest = order.slice(1);
     if (rest.length === 0) finish();
     else {
@@ -191,32 +444,44 @@ function QuizRunner({
     }
   };
   const skip = () => {
-    setOrder([...order.slice(1), order[0]]);
+    const rest = [...order.slice(1), order[0]];
+    setOrder(rest);
+    persist(rest);
     scrollRef.current?.scrollTo({ y: 0, animated: false });
+  };
+  const startExam = () => {
+    startedAt.current = Date.now();
+    const end = startedAt.current + (session.timeLimit ?? 0) * 1000;
+    setDeadline(end);
+    // Examen commencé : il peut être repris (ou noté) même sans aucune réponse.
+    persist(order, end);
   };
 
   if (reward) {
     return <Results mode={mode} session={session} results={results} reward={reward} color={color} practice={practice} day={day} subjectId={subjectId} />;
   }
+  if (autoFinish) return <ActivityIndicator color={colors.primary} style={{ flex: 1, backgroundColor: colors.bg }} />;
   if (isExam && deadline === null) {
-    return <ExamIntro session={session} color={color} onStart={() => setDeadline(Date.now() + (session.timeLimit ?? 0) * 1000)} />;
+    return <ExamIntro session={session} color={color} onStart={startExam} />;
   }
 
   return (
     <Screen edges={['bottom']} scrollRef={scrollRef}>
       <Stack.Screen options={{ title: session.title }} />
       <View style={[ui.row, { justifyContent: 'space-between', flexWrap: 'wrap' }]}>
-        <Text style={styles.counter}>{isExam ? `Répondu ${answered}/${total}` : `Question ${answered + 1}/${total}`}</Text>
+        <Text style={styles.counter} maxFontSizeMultiplier={MAX_FONT_SCALE}>
+          {isExam ? `Répondu ${answered}/${total}` : `Question ${answered + 1}/${total}`}
+        </Text>
         <View style={[ui.row, { flexShrink: 1, flexWrap: 'wrap', justifyContent: 'flex-end' }]}>
           {practice && <Pill label="Entraînement · sans XP" color={colors.muted} />}
           {!isExam && <ComboPill combo={combo} />}
           {isExam && deadline !== null && <Countdown deadline={deadline} onExpire={onExpire} />}
         </View>
       </View>
-      <ProgressBar value={answered / total} color={color} height={10} />
+      <ProgressBar value={answered / total} color={color} height={10} accessibilityLabel="Avancement du quiz" />
       {/* Matière seulement : le chapitre serait un indice, il est révélé dans la correction. */}
       {mode !== 'chapter' && !isExam && current && (
-        <Text style={[ui.muted, { color: current.subject.color, fontWeight: '700' }]}>
+        <Text style={[ui.muted, { color: accentText(current.subject.color, colors), fontWeight: '700' }]}>
           {current.subject.icon} {current.subject.name}
         </Text>
       )}
@@ -240,6 +505,7 @@ function QuizRunner({
 }
 
 function ExamIntro({ session, color, onStart }: { session: QuizSession; color: string; onStart: () => void }) {
+  const ui = useUi();
   const minutes = Math.ceil((session.timeLimit ?? 0) / 60);
   return (
     <Screen edges={['bottom']}>
@@ -262,6 +528,7 @@ const COMBO_WORDS: Record<number, string> = { 3: 'Bien joué !', 5: 'En feu !', 
 
 /** Pastille de combo : petit « pop » aux paliers 3, 5 et 10 (rien quand le combo est perdu). */
 function ComboPill({ combo }: { combo: number }) {
+  const { colors } = useTheme();
   const reduceMotion = useReduceMotion();
   const [scale] = useState(() => new Animated.Value(1));
   const word = COMBO_WORDS[combo];
@@ -302,6 +569,9 @@ function Results({
   day: string;
   subjectId?: string;
 }) {
+  const { colors } = useTheme();
+  const styles = useStyles(makeStyles);
+  const ui = useUi();
   const { state } = useProgress();
   // Défi commencé un autre jour (avant minuit) : entraînement, comme un défi rejoué.
   const [stale] = useState(() => day !== dayKey());
@@ -325,22 +595,20 @@ function Results({
     if (reward.levelUp != null) celebrate(haptics);
   }, [reward.levelUp, haptics]);
 
-  const shareDaily = () => {
-    if (!state.profile) return;
-    void share(
-      dailyShareText({
-        day,
-        trackLabel: getTrack(state.profile.track).label,
-        correct,
-        total,
-        grid: results.map((r) => (r.correct ? '✅' : '❌')).join(''),
-        streak: effectiveStreak(state, day),
-      }),
-    );
+  const dailyMessage = () => {
+    if (!state.profile) return null;
+    return dailyShareText({
+      day,
+      trackLabel: getTrack(state.profile.track).label,
+      correct,
+      total,
+      grid: results.map((r) => (r.correct ? '✅' : '❌')).join(''),
+      streak: effectiveStreak(state, day),
+    });
   };
-  const shareExam = () => {
+  const examMessage = () => {
     const subjectName = getSubject(subjectId ?? '')?.name ?? session.questions[0].subject.name;
-    void share(examShareText({ subjectName, note }));
+    return examShareText({ subjectName, note });
   };
 
   return (
@@ -359,7 +627,9 @@ function Results({
         <Text style={{ fontSize: 64 }}>{emoji}</Text>
         {mode === 'exam' ? (
           <>
-            <Text style={[styles.score, { color }]}>{formatNote(note)}/20</Text>
+            <Text style={[styles.score, { color: accentText(color, colors) }]} maxFontSizeMultiplier={MAX_FONT_SCALE}>
+              {formatNote(note)}/20
+            </Text>
             <Pill label={`Mention : ${mention(note)}`} color={note >= 10 ? colors.primary : colors.red} />
             <Text style={[ui.muted, { textAlign: 'center' }]}>
               Note indicative sur des questions de cours : l’épreuve réelle comporte aussi des exercices rédigés.
@@ -369,18 +639,20 @@ function Results({
             )}
           </>
         ) : (
-          <Text style={[styles.score, { color }]}>
+          <Text style={[styles.score, { color: accentText(color, colors) }]} maxFontSizeMultiplier={MAX_FONT_SCALE}>
             {correct}/{total}
           </Text>
         )}
         <Text style={[ui.h2, { textAlign: 'center' }]}>{message}</Text>
       </View>
 
-      {mode === 'daily' && !training && <Button label="📤 Partager mon score" variant="secondary" color={color} onPress={shareDaily} />}
-      {mode === 'exam' && <Button label="📤 Partager ma note" variant="secondary" color={color} onPress={shareExam} />}
+      {mode === 'daily' && !training && <ShareButton label="📤 Partager mon score" color={color} message={dailyMessage} />}
+      {mode === 'exam' && <ShareButton label="📤 Partager ma note" color={color} message={examMessage} />}
 
       <Card style={{ gap: 6, backgroundColor: colors.goldSoft }}>
-        <Text style={styles.xp}>+{reward.xp} XP</Text>
+        <Text style={styles.xp} maxFontSizeMultiplier={MAX_FONT_SCALE}>
+          +{reward.xp} XP
+        </Text>
         {reward.levelUp != null && <Text style={styles.line}>🎉 Tu passes au niveau {reward.levelUp} !</Text>}
         {reward.messages.map((m, i) => (
           <Text key={i} style={styles.line}>
@@ -446,6 +718,8 @@ function Results({
 
 /** Examen blanc : réussite par chapitre, avec un lien vers la fiche des chapitres sous 50 %. */
 function Diagnostic({ session, results }: { session: QuizSession; results: AnswerResult[] }) {
+  const { colors } = useTheme();
+  const ui = useUi();
   const subject = session.questions[0]?.subject;
   if (!subject) return null;
   const stats = new Map<string, { ok: number; n: number }>();
@@ -472,7 +746,11 @@ function Diagnostic({ session, results }: { session: QuizSession; results: Answe
               <Text style={{ fontWeight: '700', color: colors.text }}>
                 {chapter.title} · {ok}/{n}
               </Text>
-              <ProgressBar value={ok / n} color={weak ? colors.red : ok / n >= 0.8 ? colors.primary : colors.gold} />
+              <ProgressBar
+                value={ok / n}
+                color={weak ? colors.red : ok / n >= 0.8 ? colors.primary : colors.gold}
+                accessibilityLabel={`${chapter.title} : ${ok} sur ${n}`}
+              />
               {weak && (
                 <Button
                   label="📄 Revoir la fiche"
@@ -492,6 +770,9 @@ function Diagnostic({ session, results }: { session: QuizSession; results: Answe
 
 /** Question corrigée : énoncé, bonne réponse, explication et lien vers la fiche du chapitre. */
 function AnswerCard({ refQ, border }: { refQ: QuestionRef; border: string }) {
+  const { colors } = useTheme();
+  const styles = useStyles(makeStyles);
+  const ui = useUi();
   return (
     <Card style={{ gap: 6, borderLeftWidth: 4, borderLeftColor: border }}>
       <Text style={{ fontWeight: '700', color: colors.text }}>{refQ.question.prompt}</Text>
@@ -514,11 +795,12 @@ function correctAnswerText({ question: q }: QuestionRef): string {
   return q.answers.join(' · ');
 }
 
-const styles = StyleSheet.create({
-  counter: { fontSize: 15, fontWeight: '800', color: colors.text },
-  score: { fontSize: 48, fontWeight: '900' },
-  xp: { fontSize: 26, fontWeight: '900', color: colors.primary },
-  line: { fontSize: 15, color: colors.text },
-  link: { minHeight: 44, justifyContent: 'center', borderRadius: radius.sm },
-  linkText: { fontWeight: '700', color: colors.primaryDark },
-});
+const makeStyles = (colors: Colors) =>
+  StyleSheet.create({
+    counter: { fontSize: 15, fontWeight: '800', color: colors.text },
+    score: { fontSize: 48, fontWeight: '900' },
+    xp: { fontSize: 26, fontWeight: '900', color: colors.primary },
+    line: { fontSize: 15, color: colors.text },
+    link: { minHeight: 44, justifyContent: 'center', borderRadius: radius.sm },
+    linkText: { fontWeight: '700', color: colors.primaryDark },
+  });

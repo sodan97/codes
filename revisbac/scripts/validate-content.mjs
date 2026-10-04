@@ -4,6 +4,8 @@ import { readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
+import { cardKey } from '../src/lib/srs.ts';
+
 const dir = join(dirname(fileURLToPath(import.meta.url)), '..', 'src', 'data', 'content');
 const TRACKS = new Set(['bfm', 'bac-s', 'bac-l']);
 const errors = [];
@@ -36,6 +38,19 @@ for (const file of files) {
     for (const sec of c.sections ?? []) if (!sec.blocks?.length) err(wc, `section vide "${sec.title}"`);
     if ((c.flashcards?.length ?? 0) < 4) err(wc, 'moins de 4 flashcards');
     nCards += c.flashcards?.length ?? 0;
+    // Chaque carte est suivie en répétition espacée par sa clé (id, sinon recto) : deux cartes d'un chapitre
+    // ne doivent pas partager la même.
+    const keys = new Set();
+    for (const card of c.flashcards ?? []) {
+      if (!card.front || !card.back) err(wc, 'flashcard sans recto ou verso');
+      if (card.id !== undefined) {
+        unique(card.id, wc);
+        if (!String(card.id).startsWith(c.id + '-')) err(wc, `l'id de carte "${card.id}" doit commencer par "${c.id}-"`);
+      }
+      const key = cardKey(c.id, card);
+      if (keys.has(key)) err(wc, `deux flashcards ont la même clé "${key}" : ajouter un id à l'une d'elles`);
+      keys.add(key);
+    }
     if ((c.quiz?.length ?? 0) < 6) err(wc, 'moins de 6 questions');
     for (const q of c.quiz ?? []) {
       nQuestions++;

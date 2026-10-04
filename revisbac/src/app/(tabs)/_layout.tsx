@@ -1,16 +1,41 @@
 import { Redirect, Tabs } from 'expo-router';
-import { ActivityIndicator, Text, View } from 'react-native';
+import { ActivityIndicator, Text, View, type ColorValue } from 'react-native';
 
-import { Button, styles as ui } from '../../components/ui';
+import { Button, MAX_FONT_SCALE, useUi } from '../../components/ui';
 import { useProgress } from '../../state/progress';
-import { colors } from '../../theme';
+import { useTheme } from '../../state/theme';
 
+/** Emoji décoratif : TalkBack lit seulement le nom de l'onglet. */
 function TabIcon({ emoji, focused }: { emoji: string; focused: boolean }) {
-  return <Text style={{ fontSize: 22, opacity: focused ? 1 : 0.5 }}>{emoji}</Text>;
+  return (
+    <Text
+      importantForAccessibility="no-hide-descendants"
+      accessibilityElementsHidden
+      maxFontSizeMultiplier={MAX_FONT_SCALE}
+      style={{ fontSize: 22, opacity: focused ? 1 : 0.5 }}
+    >
+      {emoji}
+    </Text>
+  );
+}
+
+/** Nom de l'onglet, agrandi avec la police du téléphone sans déborder de la barre. */
+function TabLabel({ color, position, children }: { color: ColorValue; position: 'below-icon' | 'beside-icon'; children: string }) {
+  return (
+    <Text
+      maxFontSizeMultiplier={MAX_FONT_SCALE}
+      numberOfLines={1}
+      style={[{ color, fontWeight: '700', fontSize: 11, textAlign: 'center' }, position === 'beside-icon' && { marginLeft: 16, fontSize: 13 }]}
+    >
+      {children}
+    </Text>
+  );
 }
 
 export default function TabsLayout() {
   const { loaded, loadError, retryLoad, state } = useProgress();
+  const { colors } = useTheme();
+  const ui = useUi();
   if (!loaded) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg }}>
@@ -36,7 +61,7 @@ export default function TabsLayout() {
         headerShown: false,
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.muted,
-        tabBarLabelStyle: { fontWeight: '700', fontSize: 11 },
+        tabBarLabel: TabLabel,
         tabBarStyle: { backgroundColor: colors.card, borderTopColor: colors.border },
       }}
     >

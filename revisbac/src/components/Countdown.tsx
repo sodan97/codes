@@ -1,7 +1,7 @@
 import { memo, useEffect, useRef, useState } from 'react';
 import { AppState, View } from 'react-native';
 
-import { colors } from '../theme';
+import { useTheme } from '../state/theme';
 import { Pill } from './ui';
 
 const secondsLeft = (deadline: number) => Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
@@ -16,6 +16,7 @@ function formatTime(s: number) {
  * `onExpire` est appelé une seule fois, à zéro.
  */
 export const Countdown = memo(function Countdown({ deadline, onExpire }: { deadline: number; onExpire: () => void }) {
+  const { colors } = useTheme();
   const [remaining, setRemaining] = useState(() => secondsLeft(deadline));
   const expired = useRef(false);
   const onExpireRef = useRef(onExpire);

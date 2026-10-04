@@ -1,20 +1,26 @@
 import { router } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { Card, Pill, ProgressBar, Screen, styles as ui } from '../../components/ui';
+import { Card, MAX_FONT_SCALE, Pill, ProgressBar, Screen, useUi } from '../../components/ui';
 import { getSubjects, getTrack } from '../../data/catalog';
+import { dayKey } from '../../lib/dates';
 import { visibleSubjects } from '../../lib/selectors';
-import { subjectProgress } from '../../lib/stats';
+import { chapterStars, starsLabel, subjectProgress } from '../../lib/stats';
 import { useProgress } from '../../state/progress';
-import { colors } from '../../theme';
+import { useStyles, useTheme } from '../../state/theme';
+import type { Colors } from '../../theme';
 
 export default function Subjects() {
+  const { colors } = useTheme();
+  const styles = useStyles(makeStyles);
+  const ui = useUi();
   const { state } = useProgress();
   const profile = state.profile!;
   const track = getTrack(profile.track);
   const subjects = visibleSubjects(profile);
   const hiddenCount = getSubjects(track.id).length - subjects.length;
   const progress = new Map(subjects.map((s) => [s.id, subjectProgress(s, state)]));
+  const today = dayKey();
 
   // Priorité : la matière commencée la moins maîtrisée, dès que deux matières sont commencées.
   const started = subjects.filter((s) => progress.get(s.id)!.read > 0 || s.chapters.some((c) => state.quizBest[c.id] !== undefined));
@@ -29,19 +35,29 @@ export default function Subjects() {
       </Text>
       {subjects.map((s) => {
         const p = progress.get(s.id)!;
+        // Chapitres à 3 étoiles pas pratiqués depuis longtemps : un petit rappel, sans rien retirer.
+        const faded = s.chapters.filter((c) => chapterStars(c.id, state, today).faded).length;
+        const mastery = Math.round(p.mastery * 100);
         return (
-          <Card key={s.id} onPress={() => router.push({ pathname: '/matiere/[id]', params: { id: s.id } })}>
+          <Card
+            key={s.id}
+            onPress={() => router.push({ pathname: '/matiere/[id]', params: { id: s.id } })}
+            accessibilityLabel={`${s.name}${s.id === priority ? ', priorité' : ''}, ${p.read} fiches lues sur ${p.total}, ${p.stars} étoile${p.stars > 1 ? 's' : ''} sur ${p.maxStars}, maîtrise ${mastery} %${faded ? ', petit rappel conseillé' : ''}`}
+          >
             <View style={ui.row}>
               <View style={[styles.icon, { backgroundColor: s.color + '1A' }]}>
-                <Text style={{ fontSize: 26 }}>{s.icon}</Text>
+                <Text style={{ fontSize: 26 }} maxFontSizeMultiplier={MAX_FONT_SCALE}>
+                  {s.icon}
+                </Text>
               </View>
               <View style={{ flex: 1, gap: 4 }}>
                 <View style={[ui.row, { gap: 8, flexWrap: 'wrap' }]}>
                   <Text style={styles.name}>{s.name}</Text>
                   {s.id === priority && <Pill label="Priorité" color={colors.red} />}
+                  {faded > 0 && <Pill label="🔄 petit rappel conseillé" color={colors.goldText} />}
                 </View>
                 <Text style={ui.muted}>
-                  {p.read}/{p.total} fiches lues · maîtrise {Math.round(p.mastery * 100)} %
+                  {p.read}/{p.total} fiches lues · {starsLabel(p.stars, p.maxStars)} · maîtrise {mastery} %
                 </Text>
                 <ProgressBar value={p.mastery} color={s.color} />
               </View>
@@ -59,8 +75,9 @@ export default function Subjects() {
   );
 }
 
-const styles = StyleSheet.create({
-  icon: { width: 52, height: 52, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  name: { fontSize: 17, fontWeight: '800', color: colors.text },
-  chevron: { fontSize: 28, color: colors.muted },
-});
+const makeStyles = (colors: Colors) =>
+  StyleSheet.create({
+    icon: { minWidth: 52, minHeight: 52, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+    name: { fontSize: 17, fontWeight: '800', color: colors.text },
+    chevron: { fontSize: 28, color: colors.muted },
+  });

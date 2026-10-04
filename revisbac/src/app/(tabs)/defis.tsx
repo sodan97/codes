@@ -1,17 +1,23 @@
 import { router } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { Button, Card, Screen, SectionTitle, styles as ui } from '../../components/ui';
+import { QuestsCard } from '../../components/QuestsCard';
+import { ShareButton } from '../../components/ShareButton';
+import { Button, Card, MAX_FONT_SCALE, Screen, SectionTitle, useUi } from '../../components/ui';
 import { getSubjects, getTrack, isOptional } from '../../data/catalog';
 import { addDays, dayKey, weekdayLetter } from '../../lib/dates';
 import { effectiveStreak, formatNote, mention, noteTrend, todayStats, XP, type DailyResult } from '../../lib/gamification';
 import { DAILY_SIZE, EXAM_SIZE } from '../../lib/quizBuilder';
 import { activeMistakes, visibleSubjects } from '../../lib/selectors';
-import { dailyShareText, share } from '../../lib/share';
+import { dailyShareText } from '../../lib/share';
 import { useProgress } from '../../state/progress';
-import { colors } from '../../theme';
+import { useStyles, useTheme } from '../../state/theme';
+import type { Colors } from '../../theme';
 
 export default function Challenges() {
+  const { colors } = useTheme();
+  const styles = useStyles(makeStyles);
+  const ui = useUi();
   const { state } = useProgress();
   const today = dayKey();
   const todayData = todayStats(state, today);
@@ -27,10 +33,8 @@ export default function Challenges() {
   const official = state.dailyResults[today];
   const record = bestResult(Object.values(state.dailyResults));
 
-  const shareDaily = () => {
-    if (!official) return;
-    void share(dailyShareText({ day: today, trackLabel: track.label, ...official, streak: effectiveStreak(state, today) }));
-  };
+  const dailyMessage = () =>
+    official ? dailyShareText({ day: today, trackLabel: track.label, ...official, streak: effectiveStreak(state, today) }) : null;
 
   return (
     <Screen>
@@ -47,15 +51,19 @@ export default function Challenges() {
             <Text style={[ui.body, { fontWeight: '800', color: colors.primary }]}>
               {official ? `Ton score du jour : ${official.correct}/${official.total}` : '✓ Défi relevé ! Reviens demain.'}
             </Text>
-            {official && <Button label="📤 Partager mon score" variant="secondary" onPress={shareDaily} />}
-            <View style={styles.days}>
+            {official && <ShareButton label="📤 Partager mon score" message={dailyMessage} />}
+            <View
+              style={styles.days}
+              accessible
+              accessibilityLabel={`Défis des 7 derniers jours : ${week.filter((d) => state.dailyResults[d]).length} relevés sur 7`}
+            >
               {week.map((d) => {
                 const r = state.dailyResults[d];
                 return (
                   <View key={d} style={styles.day}>
                     <Text style={[ui.muted, d === today && { fontWeight: '900', color: colors.text }]}>{weekdayLetter(d)}</Text>
                     <View style={[styles.dayScore, r && { backgroundColor: colors.card, borderColor: colors.primary }]}>
-                      <Text style={[styles.dayScoreText, !r && { color: colors.muted }]}>{r ? `${r.correct}/${r.total}` : '–'}</Text>
+                      <Text style={[styles.dayScoreText, !r && { color: colors.muted }]} maxFontSizeMultiplier={MAX_FONT_SCALE}>{r ? `${r.correct}/${r.total}` : '–'}</Text>
                     </View>
                   </View>
                 );
@@ -73,6 +81,8 @@ export default function Challenges() {
         )}
       </Card>
 
+      <QuestsCard />
+
       <Card style={{ gap: 8 }}>
         <Text style={styles.title}>🔁 Revoir mes erreurs</Text>
         <Text style={ui.body}>
@@ -88,10 +98,16 @@ export default function Challenges() {
 
       <Card style={{ gap: 10 }}>
         <Text style={styles.title}>📊 Ma semaine</Text>
-        <View style={styles.chart}>
+        <View
+          style={styles.chart}
+          accessible
+          accessibilityLabel={`XP des 7 derniers jours : ${weekXp.join(', ')}. Objectif atteint ${weekXp.filter((x) => x >= profile.dailyGoal).length} jours sur 7`}
+        >
           {week.map((d, i) => (
             <View key={d} style={{ alignItems: 'center', flex: 1, gap: 4 }}>
-              <Text style={styles.barValue}>{weekXp[i] || ''}</Text>
+              <Text style={styles.barValue} maxFontSizeMultiplier={MAX_FONT_SCALE}>
+                {weekXp[i] || ''}
+              </Text>
               <View style={styles.barTrack}>
                 <View style={[styles.bar, { height: `${(weekXp[i] / maxXp) * 100}%`, backgroundColor: weekXp[i] >= profile.dailyGoal ? colors.primary : colors.gold }]} />
               </View>
@@ -108,7 +124,12 @@ export default function Challenges() {
         const best = state.examBest[s.id];
         const trend = noteTrend(state.examHistory[s.id]);
         return (
-          <Card key={s.id} style={{ gap: 4 }} onPress={() => router.push({ pathname: '/quiz', params: { mode: 'exam', id: s.id } })}>
+          <Card
+            key={s.id}
+            style={{ gap: 4 }}
+            onPress={() => router.push({ pathname: '/quiz', params: { mode: 'exam', id: s.id } })}
+            accessibilityLabel={`Examen blanc de ${s.name}, ${best === undefined ? 'pas encore passé' : `meilleure note ${formatNote(best)} sur 20, ${mention(best)}`}`}
+          >
             <View style={ui.row}>
               <Text style={{ fontSize: 26 }}>{s.icon}</Text>
               <Text style={[styles.title, { flex: 1 }]}>{s.name}</Text>
@@ -134,15 +155,17 @@ function bestResult(results: DailyResult[]): DailyResult | null {
   return best;
 }
 
-const styles = StyleSheet.create({
-  title: { fontSize: 16, fontWeight: '800', color: colors.text },
-  daily: { gap: 8, borderWidth: 2, borderColor: colors.gold },
-  chart: { flexDirection: 'row', height: 130, alignItems: 'flex-end', gap: 6 },
-  barTrack: { width: '70%', flex: 1, justifyContent: 'flex-end' },
-  bar: { width: '100%', borderRadius: 6, minHeight: 2 },
-  barValue: { fontSize: 11, color: colors.muted, fontWeight: '700' },
-  days: { flexDirection: 'row', gap: 4 },
-  day: { flex: 1, alignItems: 'center', gap: 4 },
-  dayScore: { alignSelf: 'stretch', alignItems: 'center', paddingVertical: 4, borderRadius: 8, borderWidth: 1, borderColor: colors.border },
-  dayScoreText: { fontSize: 12, fontWeight: '800', color: colors.text },
-});
+const makeStyles = (colors: Colors) =>
+  StyleSheet.create({
+    title: { fontSize: 16, fontWeight: '800', color: colors.text },
+    daily: { gap: 8, borderWidth: 2, borderColor: colors.gold },
+    // Colonnes étirées sur toute la hauteur : la barre (flex: 1) prend la place restante.
+    chart: { flexDirection: 'row', height: 130, gap: 6 },
+    barTrack: { width: '70%', flex: 1, justifyContent: 'flex-end' },
+    bar: { width: '100%', borderRadius: 6, minHeight: 2 },
+    barValue: { fontSize: 11, color: colors.muted, fontWeight: '700' },
+    days: { flexDirection: 'row', gap: 4 },
+    day: { flex: 1, alignItems: 'center', gap: 4 },
+    dayScore: { alignSelf: 'stretch', alignItems: 'center', paddingVertical: 4, borderRadius: 8, borderWidth: 1, borderColor: colors.border },
+    dayScoreText: { fontSize: 12, fontWeight: '800', color: colors.text },
+  });

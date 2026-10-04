@@ -67,6 +67,12 @@ export interface FillBlankQuestion extends QuestionBase {
 export type Question = QcmQuestion | TrueFalseQuestion | FillBlankQuestion;
 
 export interface Flashcard {
+  /**
+   * Identifiant facultatif, unique dans toute l'application et préfixé par l'id du chapitre
+   * (ex. "maths-s-suites-c1"). Sans id, la carte est suivie par son recto (voir lib/srs.ts cardKey) :
+   * corriger le recto remet alors son suivi à zéro.
+   */
+  id?: string;
   front: string;
   back: string;
 }
