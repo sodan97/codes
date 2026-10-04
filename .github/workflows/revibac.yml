@@ -1,0 +1,34 @@
+name: RéviBac
+
+on:
+  push:
+    paths: ['revisbac/**', '.github/workflows/revibac.yml']
+  pull_request:
+    paths: ['revisbac/**', '.github/workflows/revibac.yml']
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: revisbac
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: revisbac/package-lock.json
+      - run: npm ci
+      - name: TypeScript
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Contenu pédagogique
+        run: npm run validate
+      - name: Règles du jeu
+        run: npm test
+      - name: Export web (le bundle doit se construire)
+        run: npx expo export --platform web --output-dir dist
+        env:
+          CI: 1
