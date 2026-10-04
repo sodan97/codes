@@ -149,7 +149,7 @@ const subject: Subject = {
           type: "trous",
           prompt: "Au repos, l'ion ___ est plus concentré dans la cellule et l'ion ___ est plus concentré à l'extérieur.",
           answers: ["K⁺", "Na⁺"],
-          bank: ["K⁺", "Na⁺", "Ca²⁺", "H⁺"],
+          bank: ["K⁺", "Na⁺", "myéline", "axone"],
           explanation: "Ces gradients, maintenus par la pompe Na⁺/K⁺, sont à l'origine du potentiel de repos et du potentiel d'action.",
         },
         {

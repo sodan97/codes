@@ -34,7 +34,7 @@ const subject: Subject = {
               ],
             },
             { kind: "example", title: "Relative", text: "Le livre que Fatou lit est passionnant. → « que Fatou lit » complète le nom « livre »." },
-            { kind: "warning", text: "« que » n'est pas toujours relatif ! Après un nom, c'est un pronom relatif ; après un verbe (dire que, penser que), c'est une conjonction qui introduit une complétive." },
+            { kind: "warning", text: "« que » n'est pas toujours relatif ! S'il remplace un nom (l'antécédent) et joue un rôle dans la subordonnée (souvent COD : le livre que Fatou lit), c'est un pronom relatif. S'il ne remplace rien (je pense que tu réussiras ; l'espoir qu'il réussisse), c'est une conjonction qui introduit une complétive." },
           ],
         },
         {
@@ -83,7 +83,7 @@ const subject: Subject = {
           prompt: "Dans « Je pense que tu réussiras ton examen », la proposition « que tu réussiras ton examen » est une :",
           choices: ["subordonnée conjonctive complétive", "subordonnée relative", "subordonnée circonstancielle de cause", "proposition indépendante"],
           answer: 0,
-          explanation: "« que » suit le verbe « penser » et non un nom : c'est une conjonction. La proposition est COD de « pense » : c'est une complétive.",
+          explanation: "« que » ne remplace aucun nom et n'a pas de fonction dans la subordonnée : c'est une conjonction. La proposition est COD de « pense » : c'est une complétive.",
         },
         {
           id: "francais-bfm-grammaire-q2",
@@ -112,7 +112,7 @@ const subject: Subject = {
           type: "trous",
           prompt: "Moussa a dit : « Je partirai demain. » → Moussa a dit qu'il ___ le ___.",
           answers: ["partirait", "lendemain"],
-          bank: ["partirait", "partira", "lendemain", "demain", "veille", "partait"],
+          bank: ["partirait", "partira", "lendemain", "demain", "veille", "partirais"],
           explanation: "Le verbe introducteur est au passé : le futur devient conditionnel présent (partirait) et « demain » devient « le lendemain ».",
         },
         {
@@ -165,7 +165,7 @@ const subject: Subject = {
         {
           title: "Le subjonctif présent",
           blocks: [
-            { kind: "formula", label: "Formation", formula: "Radical de « ils » au présent + -e, -es, -e, -ions, -iez, -ent", note: "ils finissent → que je finisse ; ils prennent → que je prenne" },
+            { kind: "formula", label: "Formation", formula: "je, tu, il, ils : radical de « ils » au présent + -e, -es, -e, -ent ; nous, vous : radical de « nous » au présent + -ions, -iez", note: "ils prennent → que je prenne, qu'ils prennent ; nous prenons → que nous prenions, que vous preniez" },
             {
               kind: "list",
               title: "Quand l'employer ?",
@@ -267,10 +267,10 @@ const subject: Subject = {
         {
           id: "francais-bfm-conjugaison-q7",
           type: "qcm",
-          prompt: "Complète : « Le chef de village a annoncé que la pluie ___ bientôt. »",
+          prompt: "Complète : « Le mois dernier, le chef de village a annoncé que la pluie ___ la semaine suivante. »",
           choices: ["arrivera", "arrivât", "arrive", "arriverait"],
           answer: 3,
-          explanation: "Le verbe principal est au passé (a annoncé) : un fait futur s'exprime au conditionnel présent, le « futur dans le passé ».",
+          explanation: "Le verbe principal est au passé (a annoncé) et l'arrivée de la pluie est située par rapport à ce moment passé (la semaine suivante) : on emploie le conditionnel présent, le « futur dans le passé ».",
         },
         {
           id: "francais-bfm-conjugaison-q8",

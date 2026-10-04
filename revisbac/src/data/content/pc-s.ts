@@ -306,7 +306,7 @@ const subject: Subject = {
         "Un satellite en orbite circulaire a un mouvement uniforme : v = √(G·M/r).",
         "Période : T = 2π·√(r³/(G·M)), avec r = R + h.",
         "3e loi de Kepler : T²/r³ = 4π²/(G·M) = constante.",
-        "Un satellite géostationnaire est sur l'équateur, à environ 36 000 km d'altitude, avec T ≈ 24 h.",
+        "Un satellite géostationnaire est dans le plan de l'équateur, à environ 36 000 km d'altitude, avec T ≈ 24 h (23 h 56 min).",
       ],
       sections: [
         {
@@ -838,7 +838,7 @@ const subject: Subject = {
         {
           id: "pc-s-chimie-organique-q7",
           type: "trous",
-          prompt: "L'estérification est une réaction lente, ___ et ___.",
+          prompt: "L'estérification est lente ; elle est ___ car elle aboutit à un équilibre avec l'hydrolyse, et ___ car elle ne dégage presque pas de chaleur.",
           answers: ["limitée", "athermique"],
           bank: ["limitée", "athermique", "totale", "rapide", "très exothermique"],
           explanation: "Elle conduit à un équilibre (limitée) et ne dégage presque pas de chaleur (athermique).",

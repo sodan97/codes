@@ -15,7 +15,7 @@ const subject: Subject = {
       essentials: [
         "Subjonctif présent : radical de la 1re personne du présent + voyelle inversée (-ar → -e ; -er/-ir → -a).",
         "Subjonctif imparfait : 3e personne du pluriel de l'indefinido – ron + ra / se (hablaron → hablara).",
-        "Principale au présent, futur ou impératif → subjonctif présent ; au passé ou au conditionnel → subjonctif imparfait.",
+        "Principale au présent, futur ou impératif → subjonctif présent ; au passé (indefinido, imparfait, plus-que-parfait) ou au conditionnel → subjonctif imparfait. Après le pretérito perfecto (ha pedido), on emploie en général le subjonctif présent.",
         "Cuando + subjonctif pour une action future (Cuando llegues, llámame).",
       ],
       sections: [
@@ -44,7 +44,7 @@ const subject: Subject = {
               "But : para que",
               "Futur après cuando, en cuanto, hasta que : Cuando sea mayor, seré médico.",
             ] },
-            { kind: "formula", label: "Concordance", formula: "Quiero que vengas. (présent → subj. présent)\nQuería que vinieras. (passé → subj. imparfait)\nMe gustaría que vinieras. (conditionnel → subj. imparfait)" },
+            { kind: "formula", label: "Concordance", formula: "Quiero que vengas. (présent → subj. présent)\nQuería que vinieras. (passé → subj. imparfait)\nMe gustaría que vinieras. (conditionnel → subj. imparfait)", note: "Après le pretérito perfecto, en général subj. présent : Me ha pedido que venga." },
             { kind: "warning", text: "Piège des francophones : « Quand je serai grand » ne se traduit pas par le futur mais par le subjonctif : Cuando sea mayor." },
           ],
         },
@@ -57,7 +57,7 @@ const subject: Subject = {
         { front: "Subjonctif imparfait de tener (yo) ?", back: "tuviera (ou tuviese)" },
         { front: "Subjonctif imparfait de hacer (yo) ?", back: "hiciera (ou hiciese)" },
         { front: "« Quand tu arriveras, appelle-moi. »", back: "Cuando llegues, llámame." },
-        { front: "Principale au passé → subordonnée au… ?", back: "Subjonctif imparfait : Quería que vinieras." },
+        { front: "Principale au passé (indefinido, imparfait) → subordonnée au… ?", back: "Subjonctif imparfait : Quería que vinieras. (Après le pretérito perfecto, en général subj. présent : Me ha pedido que venga.)" },
       ],
       quiz: [
         {
@@ -88,7 +88,7 @@ const subject: Subject = {
           type: "trous",
           prompt: "Ojalá ___ (llover) pronto. Te lo explico para que lo ___ (entender).",
           answers: ["llueva", "entiendas"],
-          bank: ["llueva", "entiendas", "llueve", "entiendes", "lloviera"],
+          bank: ["llueva", "entiendas", "llueve", "entiendes", "lloverá"],
           explanation: "Ojalá et para que sont suivis du subjonctif. Les diphtongues se gardent : llueva, entiendas.",
         },
         {
@@ -143,7 +143,7 @@ const subject: Subject = {
         "Obligation impersonnelle : hay que + infinitif (Hay que proteger el medio ambiente).",
         "Si + présent → présent / futur / impératif (hypothèse réalisable).",
         "Si + subjonctif imparfait → conditionnel (hypothèse irréelle ou peu probable).",
-        "Jamais de futur, de conditionnel ni de subjonctif présent après si.",
+        "Après le si de condition (hypothèse) : jamais de futur, de conditionnel ni de subjonctif présent.",
       ],
       sections: [
         {
@@ -185,7 +185,7 @@ const subject: Subject = {
         { front: "« Si j'avais le temps, je lirais. »", back: "Si tuviera tiempo, leería." },
         { front: "« S'il pleut, je ne sortirai pas. »", back: "Si llueve, no saldré." },
         { front: "« Si j'avais étudié, j'aurais réussi. »", back: "Si hubiera estudiado, habría aprobado." },
-        { front: "Temps interdits après si ?", back: "Futur, conditionnel et subjonctif présent." },
+        { front: "Temps interdits après le si de condition (hypothèse) ?", back: "Futur, conditionnel et subjonctif présent. (Le si interrogatif « est-ce que » les accepte : No sé si vendrá.)" },
         { front: "« À moins que » ?", back: "a no ser que + subjonctif" },
         { front: "« Il faut que tu étudies » (2 façons) ?", back: "Hace falta que estudies / Es necesario que estudies (ou Tienes que estudiar)." },
       ],
@@ -203,7 +203,7 @@ const subject: Subject = {
           type: "trous",
           prompt: "___ que proteger el medio ambiente. Yo ___ que estudiar esta noche.",
           answers: ["Hay", "tengo"],
-          bank: ["Hay", "tengo", "Tiene", "debo de", "Es"],
+          bank: ["Hay", "tengo", "Hace", "debo de", "Es"],
           explanation: "Obligation générale → hay que ; obligation personnelle → tener que (tengo que).",
         },
         {
@@ -211,7 +211,7 @@ const subject: Subject = {
           type: "vrai-faux",
           prompt: "« Si tendría tiempo, iría al cine » est correct.",
           answer: false,
-          explanation: "Jamais de conditionnel après si : Si tuviera tiempo, iría al cine.",
+          explanation: "Jamais de conditionnel après le si de condition : Si tuviera tiempo, iría al cine.",
         },
         {
           id: "espagnol-bac-obligacion-hipotesis-q4",
@@ -365,7 +365,7 @@ const subject: Subject = {
           type: "trous",
           prompt: "« On mange bien au Sénégal. » → En Senegal ___ ___ bien.",
           answers: ["se", "come"],
-          bank: ["se", "come", "on", "comen", "uno"],
+          bank: ["se", "come", "on", "comen", "es"],
           explanation: "« on » se traduit souvent par se + verbe à la 3e personne : se come bien.",
         },
         {
@@ -486,7 +486,7 @@ const subject: Subject = {
           type: "trous",
           prompt: "Creo que la educación ___ esencial. No creo que la emigración ___ la única solución.",
           answers: ["es", "sea"],
-          bank: ["es", "sea", "está", "fuera", "será"],
+          bank: ["es", "sea", "está", "estar", "son"],
           explanation: "Creo que + indicatif (es). No creo que + subjonctif (sea).",
         },
         {
@@ -509,7 +509,7 @@ const subject: Subject = {
           type: "trous",
           prompt: "Muchos jóvenes sin trabajo están en el ___ y deciden ___ a Europa.",
           answers: ["paro", "emigrar"],
-          bank: ["paro", "emigrar", "parado", "inmigrar", "éxito"],
+          bank: ["paro", "emigrar", "parado", "quedarse", "éxito"],
           explanation: "estar en el paro = être au chômage ; emigrar = quitter son pays pour un autre.",
         },
         {
@@ -530,9 +530,9 @@ const subject: Subject = {
         {
           id: "espagnol-bac-expresion-temas-q8",
           type: "trous",
-          prompt: "___ lugar, hablaré de las causas. ___, propondré soluciones.",
+          prompt: "(Ordonne les parties du plan) ___ lugar, hablaré de las causas. ___, propondré soluciones.",
           answers: ["En primer", "Por último"],
-          bank: ["En primer", "Por último", "Sin embargo", "Aunque", "Por eso"],
+          bank: ["En primer", "Por último", "Sin embargo", "Aunque", "Además de"],
           explanation: "En primer lugar (d'abord) puis Por último (enfin) ordonnent les parties du texte.",
         },
         {

@@ -44,11 +44,11 @@ const subject: Subject = {
         {
           title: "Diphtongues et irréguliers",
           blocks: [
-            { kind: "list", title: "Verbes à diphtongue", items: [
+            { kind: "list", title: "Verbes à diphtongue et à alternance vocalique", items: [
               "e → ie : querer → quiero, quieres, quiere, queremos, queréis, quieren (aussi pensar, empezar, cerrar)",
               "o → ue : poder → puedo, puedes, puede, podemos, podéis, pueden (aussi dormir, volver, contar)",
               "u → ue : jugar → juego, juegas, juega, jugamos, jugáis, juegan",
-              "e → i : pedir → pido, pides, pide, pedimos, pedís, piden",
+              "Alternance e → i (pas une diphtongue) : pedir → pido, pides, pide, pedimos, pedís, piden (aussi servir, repetir)",
             ] },
             { kind: "list", title: "Irréguliers à la 1re personne", items: ["tener → tengo", "hacer → hago", "poner → pongo", "salir → salgo", "conocer → conozco", "decir → digo"] },
             { kind: "formula", label: "Ir (aller)", formula: "voy, vas, va, vamos, vais, van" },
@@ -206,7 +206,7 @@ const subject: Subject = {
         {
           id: "espagnol-bfm-pasado-q2",
           type: "trous",
-          prompt: "Esta mañana ___ desayunado pan con café. Ayer ___ arroz.",
+          prompt: "Esta mañana yo ___ desayunado pan con café. Ayer yo ___ arroz.",
           answers: ["he", "comí"],
           bank: ["he", "comí", "ha", "como", "comió"],
           explanation: "« Esta mañana » (période non terminée) → perfecto : he desayunado. « Ayer » → indefinido : comí.",
@@ -374,7 +374,7 @@ const subject: Subject = {
           type: "trous",
           prompt: "Duermo en el ___ y preparo la comida en la ___.",
           answers: ["dormitorio", "cocina"],
-          bank: ["dormitorio", "cocina", "baño", "ventana", "salón"],
+          bank: ["dormitorio", "cocina", "baño", "ventana", "armario"],
           explanation: "el dormitorio = la chambre ; la cocina = la cuisine.",
         },
         {

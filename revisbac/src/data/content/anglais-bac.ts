@@ -35,7 +35,7 @@ const subject: Subject = {
           blocks: [
             { kind: "tip", text: "Au type 2, on emploie souvent were pour toutes les personnes : \"If I were you, I would apply for that scholarship.\"" },
             { kind: "definition", term: "unless", definition: "= if … not. \"Unless you work hard, you won't succeed\" = If you don't work hard…" },
-            { kind: "list", title: "Autres connecteurs de condition", items: ["provided (that) / providing : à condition que", "as long as : tant que, pourvu que", "in case : au cas où"] },
+            { kind: "list", title: "Autres connecteurs de condition", items: ["provided (that) / providing : à condition que", "as long as : tant que, pourvu que", "in case : au cas où (précaution, ≠ if) — Take an umbrella in case it rains."] },
           ],
         },
         {
@@ -656,7 +656,7 @@ const subject: Subject = {
           prompt: "Which expression introduces an example?",
           choices: ["However", "Therefore", "For instance", "To sum up"],
           answer: 2,
-          explanation: "For instance = par exemple. However oppose, Therefore conclut, To sum up résume.",
+          explanation: "For instance = par exemple. However exprime une opposition, Therefore introduit une conséquence, To sum up résume.",
         },
         {
           id: "anglais-bac-methodology-q8",

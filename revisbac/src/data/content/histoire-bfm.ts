@@ -16,7 +16,7 @@ const subject: Subject = {
       essentials: [
         "L'attentat de Sarajevo (28 juin 1914) déclenche la guerre entre deux systèmes d'alliances.",
         'La guerre devient une guerre totale : tranchées, Verdun (1916), mobilisation des civils et des colonies.',
-        "Des dizaines de milliers de tirailleurs sénégalais combattent pour la France ; Blaise Diagne organise le recrutement de 1918.",
+        "Près de 200 000 soldats d'AOF (les tirailleurs sénégalais) sont recrutés pour la France ; Blaise Diagne organise le recrutement de 1918.",
         "En 1917, les bolcheviks de Lénine prennent le pouvoir en Russie ; l'URSS naît en 1922.",
         "L'armistice du 11 novembre 1918 et le traité de Versailles (28 juin 1919) mettent fin à la guerre.",
       ],
@@ -509,7 +509,7 @@ const subject: Subject = {
           title: 'Les grandes étapes',
           blocks: [
             { kind: 'date', date: '1er septembre 1939', event: "L'Allemagne envahit la Pologne. Le 3 septembre, la France et le Royaume-Uni lui déclarent la guerre." },
-            { kind: 'date', date: 'Juin 1940', event: "Défaite de la France. Appel du général de Gaulle à Londres (18 juin) ; armistice signé par Pétain (22 juin)." },
+            { kind: 'date', date: 'Juin 1940', event: "Défaite de la France. Appel du général de Gaulle à Londres (18 juin) ; armistice demandé par le gouvernement du maréchal Pétain et signé le 22 juin." },
             { kind: 'date', date: '22 juin 1941', event: "L'Allemagne attaque l'URSS." },
             { kind: 'date', date: '7 décembre 1941', event: 'Le Japon attaque Pearl Harbor : les États-Unis entrent en guerre.' },
             { kind: 'date', date: '1942-1943', event: "Bataille de Stalingrad : première grande défaite allemande (février 1943). C'est le tournant de la guerre." },
@@ -800,9 +800,9 @@ const subject: Subject = {
         {
           id: 'histoire-bfm-independance-senegal-q2',
           type: 'trous',
-          prompt: 'La Fédération du Mali regroupait le ___ et le ___.',
-          answers: ['Sénégal', 'Soudan français'],
-          bank: ['Sénégal', 'Soudan français', 'Dahomey', 'Haute-Volta', 'Guinée'],
+          prompt: 'La Fédération du Mali (1959-1960) regroupait le Sénégal et le ___ (actuel Mali).',
+          answers: ['Soudan français'],
+          bank: ['Soudan français', 'Dahomey', 'Haute-Volta', 'Guinée'],
           explanation: "Le Dahomey et la Haute-Volta devaient y entrer mais se sont retirés : seuls le Sénégal et le Soudan forment la Fédération.",
         },
         {
@@ -878,7 +878,7 @@ const subject: Subject = {
         {
           title: "La création de l'ONU",
           blocks: [
-            { kind: 'date', date: '26 juin 1945', event: 'Signature de la Charte des Nations unies à San Francisco par 51 États fondateurs.' },
+            { kind: 'date', date: '26 juin 1945', event: 'Signature de la Charte des Nations unies à San Francisco (50 États ; la Pologne signe peu après : 51 membres fondateurs).' },
             { kind: 'date', date: '24 octobre 1945', event: "Entrée en vigueur de la Charte : naissance officielle de l'ONU (Journée des Nations unies)." },
             {
               kind: 'list',

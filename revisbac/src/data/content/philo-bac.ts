@@ -106,7 +106,7 @@ const subject: Subject = {
           blocks: [
             {
               kind: 'tip',
-              text: "Consacre un temps important au brouillon (analyse, problématique, plan détaillé) ; rédige directement au propre l'introduction et la conclusion soignées.",
+              text: "Consacre un temps important au brouillon (analyse, problématique, plan détaillé) et rédige-y entièrement l'introduction et la conclusion ; rédige ensuite le développement directement au propre.",
             },
             {
               kind: 'tip',
@@ -246,7 +246,7 @@ const subject: Subject = {
               kind: 'definition',
               term: 'Descartes (1596-1650)',
               definition:
-                "Dans le Discours de la méthode (1637), après avoir tout mis en doute, il trouve une certitude : « Je pense, donc je suis ». Le sujet est une « chose qui pense ».",
+                "Dans le Discours de la méthode (1637), après avoir tout mis en doute, il trouve une certitude : « Je pense, donc je suis ». Le sujet est une « chose qui pense » (Méditations métaphysiques, II).",
             },
             {
               kind: 'definition',
@@ -442,7 +442,7 @@ const subject: Subject = {
               kind: 'definition',
               term: 'Spinoza (1632-1677)',
               definition:
-                "Les hommes se croient libres parce qu'ils sont conscients de leurs actions mais ignorent les causes qui les déterminent (Éthique). Exemple de la pierre qui, consciente, se croirait libre de rouler.",
+                "Les hommes se croient libres parce qu'ils sont conscients de leurs actions mais ignorent les causes qui les déterminent (Éthique). Dans sa Lettre à Schuller (lettre 58), il donne l'exemple de la pierre qui, consciente, se croirait libre de rouler.",
             },
             {
               kind: 'text',
@@ -483,7 +483,7 @@ const subject: Subject = {
               kind: 'definition',
               term: 'Rousseau (1712-1778)',
               definition:
-                "« L'homme est né libre, et partout il est dans les fers » (Du contrat social, 1762). La liberté civile consiste dans « l'obéissance à la loi qu'on s'est prescrite ».",
+                "« L'homme est né libre, et partout il est dans les fers » (Du contrat social, 1762). Par le contrat, l'homme perd sa liberté naturelle et gagne la liberté civile, limitée par la volonté générale ; l'état civil lui donne aussi la liberté morale : « l'obéissance à la loi qu'on s'est prescrite est liberté ».",
             },
             {
               kind: 'definition',
@@ -539,7 +539,7 @@ const subject: Subject = {
           prompt: '« L’homme est né ___, et partout il est dans les ___. »',
           answers: ['libre', 'fers'],
           bank: ['libre', 'fers', 'bon', 'chaînes', 'esclave'],
-          explanation: 'Première phrase du Contrat social (1762) de Rousseau.',
+          explanation: 'Rousseau, Du contrat social (1762), livre I, chapitre 1 (première phrase du chapitre).',
         },
         {
           id: 'philo-bac-liberte-q4',
@@ -587,7 +587,7 @@ const subject: Subject = {
         {
           id: 'philo-bac-liberte-q9',
           type: 'qcm',
-          prompt: 'Selon Rousseau, en quoi consiste la liberté civile ?',
+          prompt: "Selon Rousseau, en quoi consiste la vraie liberté (liberté morale) que donne l'état civil ?",
           choices: [
             'Faire tout ce que l’on désire',
             'La soumission au plus fort',
@@ -595,7 +595,7 @@ const subject: Subject = {
             "L'obéissance à la loi qu'on s'est prescrite",
           ],
           answer: 3,
-          explanation: "Dans le Contrat social, le citoyen est libre parce qu'il obéit à la volonté générale, à laquelle il participe.",
+          explanation: "Du contrat social (I, 8) : « l'impulsion du seul appétit est esclavage, et l'obéissance à la loi qu'on s'est prescrite est liberté ». Le citoyen, qui participe à la volonté générale, obéit à une loi qu'il s'est lui-même donnée.",
         },
       ],
     },
@@ -1018,7 +1018,7 @@ const subject: Subject = {
             { kind: 'definition', term: 'Opinion (doxa)', definition: 'Croyance non fondée sur une démonstration ; s’oppose à la science (épistémè).' },
             {
               kind: 'warning',
-              text: 'Ne confonds pas vérité et réalité : « la table existe » relève de la réalité ; « la table est en bois » est un jugement qui peut être vrai ou faux.',
+              text: 'Ne confonds pas vérité et réalité : la table elle-même relève de la réalité (elle n’est ni vraie ni fausse) ; « la table est en bois » est un jugement qui peut être vrai ou faux.',
             },
           ],
         },
@@ -1167,7 +1167,7 @@ const subject: Subject = {
             '« Cherchez d’abord le royaume politique »',
           ],
           answer: 0,
-          explanation: "On lui reproche d'enfermer les peuples dans des natures figées. La dernière formule est de Nkrumah, la troisième de Bachelard.",
+          explanation: "On lui reproche d'enfermer les peuples dans des natures figées. « Cherchez d’abord le royaume politique » est de Nkrumah, « L'opinion pense mal » de Bachelard et « Je pense, donc je suis » de Descartes.",
         },
         {
           id: 'philo-bac-verite-raison-q7',

@@ -100,7 +100,7 @@ const subject: Subject = {
           type: "trous",
           prompt: "Le résumé réduit le texte au ___ et respecte l'___ des idées.",
           answers: ["quart", "ordre"],
-          bank: ["quart", "ordre", "tiers", "moitié", "importance"],
+          bank: ["quart", "ordre", "tiers", "moitié", "oubli"],
           explanation: "Au bac, le résumé fait environ le quart du texte et suit l'ordre de l'argumentation.",
         },
         {
@@ -478,7 +478,7 @@ const subject: Subject = {
         {
           id: "francais-bac-mouvements-q7",
           type: "trous",
-          prompt: "Les fondateurs de la Négritude sont Senghor, ___ et ___.",
+          prompt: "Les fondateurs de la Négritude sont Senghor, le Martiniquais ___ et le Guyanais ___.",
           answers: ["Césaire", "Damas"],
           bank: ["Césaire", "Damas", "Zola", "Camara Laye", "Voltaire"],
           explanation: "Léopold Sédar Senghor, Aimé Césaire et Léon-Gontran Damas fondent la Négritude dans les années 1930 à Paris.",
@@ -543,7 +543,7 @@ const subject: Subject = {
               "Mongo Beti (Cameroun) : Ville cruelle (1954, sous le pseudonyme Eza Boto).",
               "Ahmadou Kourouma (Côte d'Ivoire) : Les Soleils des indépendances (1968).",
             ] },
-            { kind: "warning", text: "Damas est guyanais et Césaire martiniquais : la Négritude n'est pas seulement africaine, elle réunit l'Afrique et les Antilles." },
+            { kind: "warning", text: "Damas est guyanais et Césaire martiniquais : la Négritude n'est pas seulement africaine, elle réunit l'Afrique, les Antilles et la Guyane (le monde noir dans son ensemble)." },
             { kind: "tip", text: "Thèmes clés à relier aux œuvres : critique de la colonisation, conflit tradition/modernité, condition de la femme, désillusions des indépendances." },
           ],
         },

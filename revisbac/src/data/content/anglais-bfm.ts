@@ -361,7 +361,7 @@ const subject: Subject = {
         {
           id: "anglais-bfm-irregular-questions-q2",
           type: "trous",
-          prompt: "Last Saturday we ___ to the market and my mother ___ some fish.",
+          prompt: "Last Saturday we ___ (go) to the market and my mother ___ (buy) some fish.",
           answers: ["went", "bought"],
           bank: ["went", "bought", "gone", "buyed", "goed", "brought"],
           explanation: "go → went ; buy → bought. Attention : brought est le prétérit de bring (apporter).",
@@ -407,7 +407,7 @@ const subject: Subject = {
         {
           id: "anglais-bfm-irregular-questions-q8",
           type: "trous",
-          prompt: "Have you ___ my keys? I think I ___ them on the table.",
+          prompt: "Have you ___ (see) my keys? I think I ___ (leave) them on the table.",
           answers: ["seen", "left"],
           bank: ["seen", "left", "saw", "leaved", "see"],
           explanation: "Après have → participe passé de see : seen. Action passée → prétérit de leave : left.",
@@ -526,7 +526,7 @@ const subject: Subject = {
           type: "trous",
           prompt: "We must stop throwing plastic ___ in the streets and we should ___ more trees.",
           answers: ["bags", "plant"],
-          bank: ["bags", "plant", "cut", "boxes", "pollute"],
+          bank: ["bags", "plant", "cut", "forests", "pollute"],
           explanation: "plastic bags = sachets plastiques ; to plant trees = planter des arbres (cut down = abattre).",
         },
         {
@@ -547,9 +547,9 @@ const subject: Subject = {
         {
           id: "anglais-bfm-vocabulary-q8",
           type: "vrai-faux",
-          prompt: "\"A nurse\" works in a health centre.",
+          prompt: "\"A nurse\" is a person who takes care of sick people.",
           answer: true,
-          explanation: "a nurse = un(e) infirmier(ère), qui travaille dans un centre de santé ou un hôpital.",
+          explanation: "a nurse = un(e) infirmier(ère) : il/elle soigne les malades, par exemple dans un centre de santé (health centre) ou un hôpital.",
         },
       ],
     },

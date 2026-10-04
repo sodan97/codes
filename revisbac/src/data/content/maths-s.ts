@@ -16,7 +16,7 @@ const subject: Subject = {
         'Formes indéterminées : ∞ − ∞, 0 × ∞, ∞/∞ et 0/0.',
         'En ±∞, un polynôme a la limite de son terme de plus haut degré ; une fraction rationnelle, celle du quotient des termes de plus haut degré.',
         'lim f = ±∞ en a : asymptote verticale x = a ; lim f = b en ±∞ : asymptote horizontale y = b.',
-        'TVI : f continue et strictement monotone sur [a ; b], k entre f(a) et f(b) ⇒ f(x) = k a une unique solution dans [a ; b].',
+        'TVI : f continue sur [a ; b], k entre f(a) et f(b) ⇒ f(x) = k a au moins une solution dans [a ; b] ; si de plus f est strictement monotone, la solution est unique (théorème de la bijection).',
         'Toute fonction dérivable est continue (la réciproque est fausse).',
       ],
       sections: [

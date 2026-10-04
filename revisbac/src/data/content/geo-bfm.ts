@@ -14,7 +14,7 @@ const subject: Subject = {
       summary:
         "Le Sénégal est un pays plat au climat tropical, arrosé de plus en plus du nord au sud, drainé par quatre grands cours d'eau.",
       essentials: [
-        "Superficie : 196 722 km². Le relief est bas et plat ; les seules hauteurs (moins de 600 m) sont au sud-est.",
+        "Superficie : 196 722 km². Le relief est bas et plat ; les seules hauteurs, modestes (pas plus de 650 m environ), sont au sud-est.",
         "Climat tropical à deux saisons : saison sèche et saison des pluies (hivernage), de juin-juillet à octobre.",
         'Les pluies augmentent du nord (moins de 400 mm) vers le sud (plus de 1 000 mm en Casamance).',
         'Trois vents : alizé maritime, harmattan (sec et chaud) et mousson (qui apporte la pluie).',
@@ -39,7 +39,7 @@ const subject: Subject = {
               title: 'Relief',
               items: [
                 'Un pays de plaines et de plateaux bas : la majeure partie du territoire est à moins de 100 m d’altitude.',
-                'Au sud-est, les contreforts du Fouta-Djalon forment les seules hauteurs (moins de 600 m).',
+                'Au sud-est, les contreforts du Fouta-Djalon forment les seules hauteurs, modestes : elles ne dépassent pas 650 m environ (point culminant près de Népen Diakha, région de Kédougou).',
                 "À Dakar, les collines des Mamelles sont d'anciens volcans.",
               ],
             },
@@ -182,7 +182,7 @@ const subject: Subject = {
           prompt: 'Où se trouvent les seules hauteurs du Sénégal ?',
           choices: ['Au sud-est, près de la Guinée', 'Au nord, près du fleuve', 'Sur la côte', 'Au centre, dans le bassin arachidier'],
           answer: 0,
-          explanation: 'Les contreforts du Fouta-Djalon, au sud-est (région de Kédougou), forment les seules hauteurs, qui restent inférieures à 600 m.',
+          explanation: 'Les contreforts du Fouta-Djalon, au sud-est (région de Kédougou), forment les seules hauteurs, modestes : elles ne dépassent pas 650 m environ.',
         },
         {
           id: 'geo-bfm-milieu-physique-q5',
@@ -827,7 +827,7 @@ const subject: Subject = {
       essentials: [
         "L'intégration régionale permet un marché plus grand, la libre circulation et des projets communs.",
         "CEDEAO : créée en 1975 (traité de Lagos), siège à Abuja ; libre circulation des personnes.",
-        'UEMOA : créée en 1994 à Dakar, 8 pays ayant le franc CFA (émis par la BCEAO, siège à Dakar).',
+        'UEMOA : créée le 10 janvier 1994 à Dakar, siège à Ouagadougou ; 8 pays utilisant le franc CFA, émis par la BCEAO (dont le siège est à Dakar).',
         'OMVS : créée en 1972 (Mali, Mauritanie, Sénégal, rejoints par la Guinée) ; barrages de Diama et Manantali.',
         'Obstacles : conflits, mauvaises routes, faibles échanges, tensions politiques.',
       ],
@@ -863,7 +863,7 @@ const subject: Subject = {
                 'Libre circulation des personnes (protocole de 1979) et passeport commun.',
                 'Missions de paix (ECOMOG).',
                 'Projet de monnaie commune : l’éco.',
-                'En janvier 2025, le Mali, le Burkina Faso et le Niger l’ont quittée pour former l’Alliance des États du Sahel (AES).',
+                'Le Mali, le Burkina Faso et le Niger, réunis depuis 2023 dans l’Alliance des États du Sahel (AES), l’ont quittée (retrait effectif en janvier 2025).',
               ],
             },
             { kind: 'date', date: '10 janvier 1994', event: "Création de l'UEMOA (Union économique et monétaire ouest-africaine) à Dakar. Siège : Ouagadougou." },
