@@ -1,0 +1,61 @@
+// Vérifie l'intégrité du contenu pédagogique (ids uniques, réponses valides, trous cohérents).
+// Usage : npm run validate
+import { readdirSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+
+const dir = join(dirname(fileURLToPath(import.meta.url)), '..', 'src', 'data', 'content');
+const TRACKS = new Set(['bfm', 'bac-s', 'bac-l']);
+const errors = [];
+const ids = new Set();
+const err = (where, msg) => errors.push(`${where}: ${msg}`);
+const unique = (id, where) => (ids.has(id) ? err(where, `id dupliqué "${id}"`) : ids.add(id));
+
+let nChapters = 0, nQuestions = 0, nCards = 0;
+const files = readdirSync(dir).filter((f) => f.endsWith('.ts') && f !== 'index.ts');
+for (const file of files) {
+  const { default: s } = await import(pathToFileURL(join(dir, file)).href);
+  const w = file;
+  if (!s || !s.id) { err(w, 'export default manquant'); continue; }
+  if (`${s.id}.ts` !== file) err(w, `le fichier doit s'appeler ${s.id}.ts`);
+  unique(s.id, w);
+  if (!s.tracks?.length || s.tracks.some((t) => !TRACKS.has(t))) err(w, 'tracks invalides');
+  if (!/^#[0-9A-Fa-f]{6}$/.test(s.color)) err(w, 'couleur invalide');
+  if (!s.chapters?.length) err(w, 'aucun chapitre');
+  for (const c of s.chapters ?? []) {
+    nChapters++;
+    const wc = `${w} > ${c.id}`;
+    unique(c.id, wc);
+    if (!c.id.startsWith(s.id + '-')) err(wc, `l'id du chapitre doit commencer par "${s.id}-"`);
+    if (!c.title || !c.summary) err(wc, 'titre/résumé manquant');
+    if (!c.essentials?.length) err(wc, 'essentials vide');
+    if (!c.sections?.length) err(wc, 'sections vides');
+    for (const sec of c.sections ?? []) if (!sec.blocks?.length) err(wc, `section vide "${sec.title}"`);
+    if ((c.flashcards?.length ?? 0) < 4) err(wc, 'moins de 4 flashcards');
+    nCards += c.flashcards?.length ?? 0;
+    if ((c.quiz?.length ?? 0) < 6) err(wc, 'moins de 6 questions');
+    for (const q of c.quiz ?? []) {
+      nQuestions++;
+      const wq = `${wc} > ${q.id}`;
+      unique(q.id, wq);
+      if (!q.id.startsWith(c.id + '-')) err(wq, `l'id doit commencer par "${c.id}-"`);
+      if (!q.explanation) err(wq, 'explication manquante');
+      if (q.type === 'qcm') {
+        if (!(q.choices?.length >= 2)) err(wq, 'choix insuffisants');
+        if (!Number.isInteger(q.answer) || q.answer < 0 || q.answer >= q.choices.length) err(wq, 'index de réponse invalide');
+        if (new Set(q.choices).size !== q.choices.length) err(wq, 'choix dupliqués');
+      } else if (q.type === 'vrai-faux') {
+        if (typeof q.answer !== 'boolean') err(wq, 'réponse non booléenne');
+      } else if (q.type === 'trous') {
+        const blanks = q.prompt.split('___').length - 1;
+        if (blanks < 1) err(wq, 'aucun trou "___"');
+        if (blanks !== q.answers?.length) err(wq, `${blanks} trous mais ${q.answers?.length} réponses`);
+        for (const a of q.answers ?? []) if (!q.bank?.includes(a)) err(wq, `"${a}" absent de la banque de mots`);
+        if ((q.bank?.length ?? 0) <= (q.answers?.length ?? 0)) err(wq, 'la banque doit contenir des distracteurs');
+      } else err(wq, `type inconnu ${q.type}`);
+    }
+  }
+}
+console.log(`${files.length} matières, ${nChapters} chapitres, ${nCards} flashcards, ${nQuestions} questions`);
+if (errors.length) { console.error(errors.join('\n')); process.exit(1); }
+console.log('Contenu valide ✔');

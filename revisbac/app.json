@@ -1,0 +1,32 @@
+{
+  "expo": {
+    "name": "RéviBac",
+    "slug": "revibac",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "sn.revibac.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#00853F",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "sn.revibac.app"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "output": "single"
+    },
+    "scheme": "revibac",
+    "plugins": [
+      "expo-router"
+    ]
+  }
+}
