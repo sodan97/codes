@@ -38,7 +38,9 @@ export function Button({
   disabled,
   color,
   style,
+  testID,
 }: {
+  testID?: string;
   label: string;
   onPress: () => void;
   variant?: ButtonVariant;
@@ -51,6 +53,7 @@ export function Button({
   const fg = variant === 'primary' ? '#fff' : variant === 'gold' ? colors.text : (color ?? colors.primary);
   return (
     <Pressable
+      testID={testID}
       accessibilityRole="button"
       disabled={disabled}
       onPress={onPress}

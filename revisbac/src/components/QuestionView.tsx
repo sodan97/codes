@@ -34,7 +34,7 @@ export function QuestionView({ question, color, onNext }: { question: Question; 
           <Text style={styles.body}>{question.explanation}</Text>
         </View>
       )}
-      {checked !== null && <Button label="Continuer" onPress={() => onNext(checked)} color={checked ? colors.primary : colors.text} />}
+      {checked !== null && <Button testID="continue" label="Continuer" onPress={() => onNext(checked)} color={checked ? colors.primary : colors.text} />}
     </View>
   );
 }
@@ -63,7 +63,7 @@ function Qcm({ q, color, checked, onCheck }: Props<QcmQuestion>) {
           <Choice key={i} label={q.choices[i]} state={state} color={color} disabled={done} onPress={() => setSelected(i)} />
         );
       })}
-      {!done && <Button label="Valider" disabled={selected === null} onPress={() => onCheck(selected === q.answer)} color={color} />}
+      {!done && <Button testID="validate" label="Valider" disabled={selected === null} onPress={() => onCheck(selected === q.answer)} color={color} />}
     </View>
   );
 }
@@ -84,7 +84,7 @@ function TrueFalse({ q, color, checked, onCheck }: Props<TrueFalseQuestion>) {
           <Choice label="👎 Faux" state={stateOf(false)} color={color} disabled={done} onPress={() => setSelected(false)} center />
         </View>
       </View>
-      {!done && <Button label="Valider" disabled={selected === null} onPress={() => onCheck(selected === q.answer)} color={color} />}
+      {!done && <Button testID="validate" label="Valider" disabled={selected === null} onPress={() => onCheck(selected === q.answer)} color={color} />}
     </View>
   );
 }
@@ -146,6 +146,7 @@ function FillBlank({ q, color, checked, onCheck }: Props<FillBlankQuestion>) {
               const used = fills.includes(i);
               return (
                 <Pressable
+                  testID="chip"
                   key={word}
                   disabled={used}
                   onPress={() => place(i)}
@@ -156,7 +157,7 @@ function FillBlank({ q, color, checked, onCheck }: Props<FillBlankQuestion>) {
               );
             })}
           </View>
-          <Button label="Valider" disabled={fills.includes(null)} onPress={validate} color={color} />
+          <Button testID="validate" label="Valider" disabled={fills.includes(null)} onPress={validate} color={color} />
         </>
       )}
     </View>
@@ -184,6 +185,7 @@ function Choice({
   const bg = state === 'good' ? colors.primarySoft : state === 'bad' ? colors.redSoft : state === 'selected' ? color + '14' : colors.card;
   return (
     <Pressable
+      testID="choice"
       accessibilityRole="button"
       accessibilityState={{ selected: state === 'selected' }}
       disabled={disabled}
