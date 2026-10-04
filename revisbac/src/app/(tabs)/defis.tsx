@@ -2,10 +2,12 @@ import { router } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Button, Card, Screen, SectionTitle, styles as ui } from '../../components/ui';
-import { getSubjects } from '../../data/catalog';
+import { getSubjects, getTrack, isOptional } from '../../data/catalog';
 import { addDays, dayKey, weekdayLetter } from '../../lib/dates';
-import { mention, todayStats, XP } from '../../lib/gamification';
+import { effectiveStreak, formatNote, mention, noteTrend, todayStats, XP, type DailyResult } from '../../lib/gamification';
 import { DAILY_SIZE, EXAM_SIZE } from '../../lib/quizBuilder';
+import { activeMistakes, visibleSubjects } from '../../lib/selectors';
+import { dailyShareText, share } from '../../lib/share';
 import { useProgress } from '../../state/progress';
 import { colors } from '../../theme';
 
@@ -13,11 +15,22 @@ export default function Challenges() {
   const { state } = useProgress();
   const today = dayKey();
   const todayData = todayStats(state, today);
-  const mistakes = Object.keys(state.mistakes).length;
-  const subjects = getSubjects(state.profile!.track);
+  const { due, waiting } = activeMistakes(state, today);
+  const profile = state.profile!;
+  const track = getTrack(profile.track);
+  const subjects = visibleSubjects(profile);
+  // Le défi du jour est tiré sur le tronc commun : on le précise seulement si l'examen a une LV2.
+  const hasOptional = getSubjects(profile.track).some((s) => isOptional(s.id));
   const week = Array.from({ length: 7 }, (_, i) => addDays(today, i - 6));
   const weekXp = week.map((d) => state.history[d] ?? 0);
-  const maxXp = Math.max(...weekXp, state.profile!.dailyGoal);
+  const maxXp = Math.max(...weekXp, profile.dailyGoal);
+  const official = state.dailyResults[today];
+  const record = bestResult(Object.values(state.dailyResults));
+
+  const shareDaily = () => {
+    if (!official) return;
+    void share(dailyShareText({ day: today, trackLabel: track.label, ...official, streak: effectiveStreak(state, today) }));
+  };
 
   return (
     <Screen>
@@ -26,12 +39,34 @@ export default function Challenges() {
       <Card style={[styles.daily, todayData.challengeDone && { backgroundColor: colors.primarySoft }]}>
         <Text style={styles.title}>🎯 Défi du jour</Text>
         <Text style={ui.body}>
-          {DAILY_SIZE} questions mélangées sur toutes tes matières. Le même défi pour tous les candidats aujourd’hui : compare ton score avec tes amis !
+          {DAILY_SIZE} questions mélangées sur {hasOptional ? 'tes matières du tronc commun (sans LV2)' : 'tes matières'}. Le même défi pour tous les
+          candidats {track.label} aujourd’hui : partage ton score à tes amis !
         </Text>
         {todayData.challengeDone ? (
           <>
-            <Text style={[ui.body, { fontWeight: '800', color: colors.primary }]}>✓ Défi relevé ! Reviens demain.</Text>
-            <Button label="Rejouer pour m’entraîner" variant="secondary" onPress={() => router.push({ pathname: '/quiz', params: { mode: 'daily' } })} />
+            <Text style={[ui.body, { fontWeight: '800', color: colors.primary }]}>
+              {official ? `Ton score du jour : ${official.correct}/${official.total}` : '✓ Défi relevé ! Reviens demain.'}
+            </Text>
+            {official && <Button label="📤 Partager mon score" variant="secondary" onPress={shareDaily} />}
+            <View style={styles.days}>
+              {week.map((d) => {
+                const r = state.dailyResults[d];
+                return (
+                  <View key={d} style={styles.day}>
+                    <Text style={[ui.muted, d === today && { fontWeight: '900', color: colors.text }]}>{weekdayLetter(d)}</Text>
+                    <View style={[styles.dayScore, r && { backgroundColor: colors.card, borderColor: colors.primary }]}>
+                      <Text style={[styles.dayScoreText, !r && { color: colors.muted }]}>{r ? `${r.correct}/${r.total}` : '–'}</Text>
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+            {record && (
+              <Text style={ui.muted}>
+                Record : {record.correct}/{record.total}
+              </Text>
+            )}
+            <Button label="Rejouer pour m’entraîner (sans XP)" variant="secondary" onPress={() => router.push({ pathname: '/quiz', params: { mode: 'daily' } })} />
           </>
         ) : (
           <Button label={`Relever le défi (+${XP.dailyChallenge} XP)`} variant="gold" onPress={() => router.push({ pathname: '/quiz', params: { mode: 'daily' } })} />
@@ -41,11 +76,14 @@ export default function Challenges() {
       <Card style={{ gap: 8 }}>
         <Text style={styles.title}>🔁 Revoir mes erreurs</Text>
         <Text style={ui.body}>
-          {mistakes > 0
-            ? `${mistakes} question${mistakes > 1 ? 's' : ''} à retravailler. Une question réussie ici sort de la liste.`
-            : 'Aucune erreur en attente. Les questions que tu rates aux quiz apparaîtront ici.'}
+          {due.length} à revoir aujourd’hui · {waiting} en attente. Une question ratée revient le lendemain, puis 3 et 7 jours après si tu la réussis.
         </Text>
-        <Button label="Retravailler mes erreurs" disabled={mistakes === 0} color={colors.red} onPress={() => router.push({ pathname: '/quiz', params: { mode: 'review' } })} />
+        <Button
+          label={due.length > 0 ? 'Retravailler mes erreurs' : 'Rien à revoir aujourd’hui 👍'}
+          disabled={due.length === 0}
+          color={colors.red}
+          onPress={() => router.push({ pathname: '/quiz', params: { mode: 'review' } })}
+        />
       </Card>
 
       <Card style={{ gap: 10 }}>
@@ -55,7 +93,7 @@ export default function Challenges() {
             <View key={d} style={{ alignItems: 'center', flex: 1, gap: 4 }}>
               <Text style={styles.barValue}>{weekXp[i] || ''}</Text>
               <View style={styles.barTrack}>
-                <View style={[styles.bar, { height: `${(weekXp[i] / maxXp) * 100}%`, backgroundColor: weekXp[i] >= state.profile!.dailyGoal ? colors.primary : colors.gold }]} />
+                <View style={[styles.bar, { height: `${(weekXp[i] / maxXp) * 100}%`, backgroundColor: weekXp[i] >= profile.dailyGoal ? colors.primary : colors.gold }]} />
               </View>
               <Text style={[ui.muted, d === today && { fontWeight: '900', color: colors.text }]}>{weekdayLetter(d)}</Text>
             </View>
@@ -68,20 +106,32 @@ export default function Challenges() {
       <Text style={ui.muted}>{EXAM_SIZE} questions chronométrées par matière, notées sur 20 avec mention.</Text>
       {subjects.map((s) => {
         const best = state.examBest[s.id];
+        const trend = noteTrend(state.examHistory[s.id]);
         return (
-          <Card key={s.id} onPress={() => router.push({ pathname: '/quiz', params: { mode: 'exam', id: s.id } })}>
+          <Card key={s.id} style={{ gap: 4 }} onPress={() => router.push({ pathname: '/quiz', params: { mode: 'exam', id: s.id } })}>
             <View style={ui.row}>
               <Text style={{ fontSize: 26 }}>{s.icon}</Text>
               <Text style={[styles.title, { flex: 1 }]}>{s.name}</Text>
               <Text style={{ fontWeight: '800', color: best === undefined ? colors.muted : best >= 10 ? colors.primary : colors.red }}>
-                {best === undefined ? 'Pas encore passé' : `${best}/20 · ${mention(best)}`}
+                {best === undefined ? 'Pas encore passé' : `${formatNote(best)}/20 · ${mention(best)}`}
               </Text>
             </View>
+            {trend && <Text style={[ui.muted, { textAlign: 'right' }]}>Tes dernières notes : {trend}</Text>}
           </Card>
         );
       })}
     </Screen>
   );
+}
+
+/** Meilleur score du défi (taux de réussite, puis nombre de bonnes réponses). */
+function bestResult(results: DailyResult[]): DailyResult | null {
+  let best: DailyResult | null = null;
+  for (const r of results) {
+    if (r.total === 0) continue;
+    if (!best || r.correct / r.total > best.correct / best.total || (r.correct / r.total === best.correct / best.total && r.correct > best.correct)) best = r;
+  }
+  return best;
 }
 
 const styles = StyleSheet.create({
@@ -91,4 +141,8 @@ const styles = StyleSheet.create({
   barTrack: { width: '70%', flex: 1, justifyContent: 'flex-end' },
   bar: { width: '100%', borderRadius: 6, minHeight: 2 },
   barValue: { fontSize: 11, color: colors.muted, fontWeight: '700' },
+  days: { flexDirection: 'row', gap: 4 },
+  day: { flex: 1, alignItems: 'center', gap: 4 },
+  dayScore: { alignSelf: 'stretch', alignItems: 'center', paddingVertical: 4, borderRadius: 8, borderWidth: 1, borderColor: colors.border },
+  dayScoreText: { fontSize: 12, fontWeight: '800', color: colors.text },
 });

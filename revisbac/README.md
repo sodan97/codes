@@ -2,7 +2,7 @@
 
 Application mobile de révision gamifiée pour les élèves sénégalais qui préparent le **BFM** (3e) et le **Baccalauréat** (Terminale S et L).
 
-Fiches synthétiques, flashcards, quiz (QCM, vrai/faux, textes à trous), défi du jour, examens blancs notés sur 20, séries de jours, niveaux et badges. Tout fonctionne **hors-ligne**.
+Fiches synthétiques, flashcards, quiz (QCM, vrai/faux, textes à trous), défi du jour à partager, révision express, erreurs revues à intervalles croissants, examens blancs chronométrés notés sur 20 avec diagnostic par chapitre, séries de jours, niveaux, badges et rappel quotidien. Tout fonctionne **hors-ligne**.
 
 ➡️ Le concept détaillé, les améliorations proposées et la feuille de route : [docs/CONCEPT.md](docs/CONCEPT.md).
 
@@ -22,7 +22,9 @@ npx expo start --web  # ou tester dans le navigateur
 ```bash
 npm run typecheck   # TypeScript
 npm run validate    # cohérence du contenu (ids uniques, réponses valides, trous…)
-npm test            # règles du jeu (XP, séries, gels, badges, notes)
+npm test            # règles du jeu, sauvegarde, tirage des quiz, plan, rappels
+npm run lint        # ESLint
+npm run check       # tout ce qui précède (comme la CI)
 ```
 
 ## Organisation du code
@@ -41,8 +43,10 @@ src/
     types.ts              modèle du contenu pédagogique
     catalog.ts            examens, index des matières/chapitres/questions
     content/              une matière = un fichier (ex. maths-s.ts)
-  lib/                    règles du jeu, construction des quiz, dates, aléatoire
-  state/progress.tsx      progression de l'élève (sauvegardée sur le téléphone)
+  lib/                    logique pure et testée : règles du jeu (gamification), tirage des quiz
+                          (quizBuilder), prochaine étape et rythme (plan), rappels (reminders),
+                          sélecteurs, partage, vibrations, dates
+  state/progress.tsx      progression de l'élève (sauvegardée sur le téléphone, migrée entre versions)
 ```
 
 ## Ajouter ou corriger du contenu

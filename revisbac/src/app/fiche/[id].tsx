@@ -6,7 +6,7 @@ import { FicheBlockView } from '../../components/FicheBlockView';
 import { RewardModal } from '../../components/RewardModal';
 import { Button, Card, Screen, styles as ui } from '../../components/ui';
 import { getChapter } from '../../data/catalog';
-import type { Reward } from '../../lib/gamification';
+import { XP, type Reward } from '../../lib/gamification';
 import { useProgress } from '../../state/progress';
 import { colors, radius } from '../../theme';
 
@@ -55,7 +55,7 @@ export default function FicheScreen() {
         {read ? (
           <Text style={[ui.body, { textAlign: 'center', color: colors.primary, fontWeight: '700' }]}>✓ Fiche lue — teste-toi maintenant !</Text>
         ) : (
-          <Button label="J’ai lu cette fiche ✓  (+10 XP)" onPress={() => setReward(markFicheRead(chapter.id, subject.id))} />
+          <Button label={`J’ai lu cette fiche ✓  (+${XP.ficheRead} XP)`} onPress={() => setReward(markFicheRead(chapter.id, subject.id))} />
         )}
         <View style={{ flexDirection: 'row', gap: 10 }}>
           <Button
@@ -77,7 +77,7 @@ export default function FicheScreen() {
         )}
       </Card>
 
-      <RewardModal reward={reward} onClose={() => setReward(null)} />
+      <RewardModal reward={reward} onClose={() => setReward(null)} haptics={state.profile?.haptics ?? true} />
     </Screen>
   );
 }

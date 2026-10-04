@@ -3,7 +3,8 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Button, Card, Pill, ProgressBar, Screen, SectionTitle, styles as ui } from '../../components/ui';
 import { getSubject } from '../../data/catalog';
-import { mention } from '../../lib/gamification';
+import { formatNote, mention, noteTrend } from '../../lib/gamification';
+import { EXAM_SIZE } from '../../lib/quizBuilder';
 import { subjectProgress } from '../../lib/stats';
 import { useProgress } from '../../state/progress';
 import { colors, radius } from '../../theme';
@@ -16,6 +17,7 @@ export default function SubjectScreen() {
 
   const p = subjectProgress(subject, state);
   const examNote = state.examBest[subject.id];
+  const examTrend = noteTrend(state.examHistory[subject.id]);
   const nQuestions = subject.chapters.reduce((n, c) => n + c.quiz.length, 0);
 
   return (
@@ -38,13 +40,14 @@ export default function SubjectScreen() {
       <Card style={{ gap: 8 }}>
         <Text style={styles.title}>📝 Examen blanc</Text>
         <Text style={ui.body}>
-          20 questions tirées de tous les chapitres, en temps limité. Ta note est sur 20, avec la mention.
+          {Math.min(EXAM_SIZE, nQuestions)} questions tirées de tous les chapitres, en temps limité, corrigées à la fin. Ta note est sur 20, avec la mention.
         </Text>
         {examNote !== undefined && (
           <Text style={ui.muted}>
-            Meilleure note : {examNote}/20 ({mention(examNote)})
+            Meilleure note : {formatNote(examNote)}/20 ({mention(examNote)})
           </Text>
         )}
+        {examTrend && <Text style={ui.muted}>Tes dernières notes : {examTrend}</Text>}
         <Button label="Lancer l’examen blanc" color={subject.color} onPress={() => router.push({ pathname: '/quiz', params: { mode: 'exam', id: subject.id } })} />
       </Card>
 
@@ -62,7 +65,7 @@ export default function SubjectScreen() {
                 <Text style={styles.title}>{c.title}</Text>
                 <Text style={ui.muted}>{c.summary}</Text>
                 {best !== undefined && (
-                  <Pill label={`Meilleur quiz : ${best} %`} color={best >= 80 ? colors.primary : best >= 50 ? colors.gold : colors.red} />
+                  <Pill label={`Meilleur quiz : ${best} %`} color={best >= 80 ? colors.primary : best >= 50 ? colors.goldText : colors.red} />
                 )}
               </View>
             </View>

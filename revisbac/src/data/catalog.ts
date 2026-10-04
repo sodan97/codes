@@ -1,41 +1,13 @@
 import { subjects } from './content';
 import type { Chapter, Question, Subject, TrackId } from './types';
 
-export interface TrackInfo {
-  id: TrackId;
-  label: string;
-  description: string;
-  emoji: string;
-  /** Date d'examen indicative (AAAA-MM-JJ), modifiable par l'élève dans son profil. */
-  defaultExamDate: string;
-}
+export { getTrack, isTrackId, tracks, type TrackInfo } from './tracks';
 
-export const tracks: TrackInfo[] = [
-  {
-    id: 'bfm',
-    label: 'BFM',
-    description: 'Brevet de Fin d’études Moyennes — classe de 3e',
-    emoji: '🎒',
-    defaultExamDate: '2027-07-12',
-  },
-  {
-    id: 'bac-s',
-    label: 'Bac S',
-    description: 'Terminale scientifique (S1, S2…)',
-    emoji: '🔬',
-    defaultExamDate: '2027-07-01',
-  },
-  {
-    id: 'bac-l',
-    label: 'Bac L',
-    description: 'Terminale littéraire (L1, L2, L’…)',
-    emoji: '📚',
-    defaultExamDate: '2027-07-01',
-  },
-];
+/** Matières facultatives (LV2) : masquables par l'élève et exclues du défi du jour commun. */
+export const OPTIONAL_SUBJECTS: ReadonlySet<string> = new Set(['espagnol-bfm', 'espagnol-bac']);
 
-export function getTrack(id: TrackId): TrackInfo {
-  return tracks.find((t) => t.id === id) ?? tracks[0];
+export function isOptional(subjectId: string): boolean {
+  return OPTIONAL_SUBJECTS.has(subjectId);
 }
 
 export function getSubjects(track: TrackId): Subject[] {

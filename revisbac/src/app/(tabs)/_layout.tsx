@@ -1,6 +1,7 @@
 import { Redirect, Tabs } from 'expo-router';
 import { ActivityIndicator, Text, View } from 'react-native';
 
+import { Button, styles as ui } from '../../components/ui';
 import { useProgress } from '../../state/progress';
 import { colors } from '../../theme';
 
@@ -9,11 +10,21 @@ function TabIcon({ emoji, focused }: { emoji: string; focused: boolean }) {
 }
 
 export default function TabsLayout() {
-  const { loaded, state } = useProgress();
+  const { loaded, loadError, retryLoad, state } = useProgress();
   if (!loaded) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg }}>
         <ActivityIndicator color={colors.primary} />
+      </View>
+    );
+  }
+  if (loadError) {
+    // Surtout pas d'onboarding ici : la sauvegarde existe peut-être et ne doit pas être écrasée.
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24, backgroundColor: colors.bg }}>
+        <Text style={{ fontSize: 48 }}>💾</Text>
+        <Text style={[ui.h2, { textAlign: 'center' }]}>Impossible de lire ta progression. Elle n’a pas été effacée.</Text>
+        <Button label="Réessayer" onPress={retryLoad} style={{ alignSelf: 'stretch' }} />
       </View>
     );
   }

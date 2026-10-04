@@ -1,14 +1,25 @@
-import type { ReactNode } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import { useEffect, useState, useSyncExternalStore, type ReactNode, type RefObject } from 'react';
+import { AccessibilityInfo, Animated, Pressable, ScrollView, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 
 import { colors, radius, shadow } from '../theme';
 
-export function Screen({ children, edges = ['top'], scroll = true }: { children: ReactNode; edges?: Edge[]; scroll?: boolean }) {
+export function Screen({
+  children,
+  edges = ['top'],
+  scroll = true,
+  scrollRef,
+}: {
+  children: ReactNode;
+  edges?: Edge[];
+  scroll?: boolean;
+  scrollRef?: RefObject<ScrollView | null>;
+}) {
   return (
     <SafeAreaView style={styles.screen} edges={edges}>
       {scroll ? (
-        <ScrollView contentContainerStyle={styles.screenContent} showsVerticalScrollIndicator={false}>
+        // keyboardShouldPersistTaps : un tap sur un bouton agit même quand le clavier est ouvert.
+        <ScrollView ref={scrollRef} contentContainerStyle={styles.screenContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           {children}
         </ScrollView>
       ) : (
@@ -16,6 +27,34 @@ export function Screen({ children, edges = ['top'], scroll = true }: { children:
       )}
     </SafeAreaView>
   );
+}
+
+// Réglage système « Réduire les animations », lu une seule fois pour toute l'application.
+let reduceMotion = false;
+let reduceMotionWatched = false;
+const reduceMotionListeners = new Set<() => void>();
+function setReduceMotion(value: boolean) {
+  reduceMotion = value;
+  reduceMotionListeners.forEach((l) => l());
+}
+function subscribeReduceMotion(listener: () => void) {
+  reduceMotionListeners.add(listener);
+  if (!reduceMotionWatched) {
+    reduceMotionWatched = true;
+    AccessibilityInfo.isReduceMotionEnabled()
+      .then(setReduceMotion)
+      .catch(() => {});
+    AccessibilityInfo.addEventListener('reduceMotionChanged', setReduceMotion);
+  }
+  return () => {
+    reduceMotionListeners.delete(listener);
+  };
+}
+const readReduceMotion = () => reduceMotion;
+
+/** Vrai si l'élève a demandé à réduire les animations : on garde alors seulement les vibrations. */
+export function useReduceMotion(): boolean {
+  return useSyncExternalStore(subscribeReduceMotion, readReduceMotion, readReduceMotion);
 }
 
 export function Card({ children, style, onPress }: { children: ReactNode; style?: StyleProp<ViewStyle>; onPress?: () => void }) {
@@ -72,10 +111,29 @@ export function Button({
 }
 
 export function ProgressBar({ value, color = colors.primary, height = 8, track = colors.border }: { value: number; color?: string; height?: number; track?: string }) {
-  const pct = Math.max(0, Math.min(1, value)) * 100;
+  const target = Math.max(0, Math.min(1, value));
+  const reduce = useReduceMotion();
+  const [width] = useState(() => new Animated.Value(target));
+  // Largeur animée sur 400 ms quand la valeur change (pas de driver natif pour une largeur).
+  useEffect(() => {
+    if (reduce) {
+      width.setValue(target);
+      return;
+    }
+    const animation = Animated.timing(width, { toValue: target, duration: 400, useNativeDriver: false });
+    animation.start();
+    return () => animation.stop();
+  }, [target, reduce, width]);
   return (
     <View style={{ height, borderRadius: height, backgroundColor: track, overflow: 'hidden' }}>
-      <View style={{ width: `${pct}%`, height: '100%', backgroundColor: color, borderRadius: height }} />
+      <Animated.View
+        style={{
+          width: width.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }),
+          height: '100%',
+          backgroundColor: color,
+          borderRadius: height,
+        }}
+      />
     </View>
   );
 }

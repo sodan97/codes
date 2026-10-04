@@ -67,6 +67,10 @@ export function FicheBlockView({ block, color }: { block: FicheBlock; color: str
           <Text style={styles.text}>{block.text}</Text>
         </View>
       );
+    default:
+      // Bloc d'un type inconnu (contenu plus récent ou mal formé) : ignoré plutôt que de faire planter la fiche.
+      if (__DEV__) console.warn('Bloc de fiche inconnu', (block as { kind?: unknown }).kind);
+      return null;
   }
 }
 

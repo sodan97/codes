@@ -18,7 +18,7 @@ Application mobile de **révision** (pas de cours complets) pour les élèves s�
 | **Flashcards** avec répétition (les cartes ratées reviennent) | La mémorisation active est plus efficace que la relecture. |
 | **3 types d'exercices** : QCM, vrai/faux, texte à trous (banque de mots) | Variés et utilisables d'une main sur téléphone, sans clavier ni accents à taper. |
 | **Correction expliquée** après chaque question | On apprend de ses erreurs au lieu de seulement voir « faux ». |
-| **« Revoir mes erreurs »** | Chaque question ratée est mise de côté et revient jusqu'à ce qu'elle soit réussie. |
+| **« Revoir mes erreurs »** à intervalles croissants (Leitner 3 boîtes) | Une question ratée revient le lendemain, puis 3 et 7 jours après chaque réussite, avant de sortir de la liste. Les réponses comptent dans tous les modes (quiz, défi, examen blanc), et tout est revu au plus tard 2 jours avant l'examen. |
 | **Défi du jour** identique pour tous les candidats d'un même examen | On peut comparer son score avec ses camarades → émulation. |
 | **Examen blanc** chronométré, noté sur 20 avec mention (Passable → Très Bien) | Se mettre en condition d'examen avec le barème sénégalais. |
 | **Série de jours 🔥 + gels de série 🧊** | Habitude quotidienne ; le gel (gagné tous les 7 jours) évite de tout perdre pour un jour manqué (coupure, maladie…). |
@@ -42,11 +42,14 @@ Application mobile de **révision** (pas de cours complets) pour les élèves s�
 |---|---|
 | Bonne réponse | +10 |
 | Quiz sans faute (≥ 5 questions) | +20 |
+| Quiz de chapitre refait le même jour : XP ÷ 2 | +5 par bonne réponse, sans bonus |
 | Première lecture d'une fiche | +10 |
-| Paquet de flashcards terminé | +5 |
-| Défi du jour (1×/jour) | +50 |
-| Examen blanc terminé | +30 |
+| Flashcards : 1×/jour/chapitre | +5 |
+| Défi du jour (1×/jour, rejeu sans XP) | +50 |
+| Examen blanc : bonus 1×/jour/matière | +30 |
 | Objectif quotidien atteint | +20 |
+
+Toute activité terminée compte pour la série 🔥, même sans XP (un quiz raté, un paquet de flashcards refait). L'objectif du jour, lui, se calcule sur l'XP.
 
 Niveau *n* atteint à 50 × (n−1) × n XP (100, 300, 600, 1 000…).
 

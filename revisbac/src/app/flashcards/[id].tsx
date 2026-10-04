@@ -20,7 +20,7 @@ export default function FlashcardsScreen() {
 
 /** Paquet de cartes : on retourne la carte, on dit si on savait ; les cartes ratées reviennent à la fin. */
 function Deck({ chapterId, cards, color, subjectId, title }: { chapterId: string; cards: Flashcard[]; color: string; subjectId: string; title: string }) {
-  const { finishFlashcards } = useProgress();
+  const { state, finishFlashcards } = useProgress();
   const [queue, setQueue] = useState(() => shuffle(cards));
   const [flipped, setFlipped] = useState(false);
   const [known, setKnown] = useState(0);
@@ -33,14 +33,14 @@ function Deck({ chapterId, cards, color, subjectId, title }: { chapterId: string
     if (knew) {
       setKnown((k) => k + 1);
       setQueue(rest);
-      if (rest.length === 0) setReward(finishFlashcards(subjectId));
+      if (rest.length === 0) setReward(finishFlashcards(subjectId, chapterId));
     } else {
       setQueue([...rest, card]);
     }
   };
 
   return (
-    <Screen edges={['bottom']} scroll={false}>
+    <Screen edges={['bottom']}>
       <Stack.Screen options={{ title }} />
       <ProgressBar value={known / cards.length} color={color} height={10} />
       <Text style={ui.muted}>
@@ -64,22 +64,22 @@ function Deck({ chapterId, cards, color, subjectId, title }: { chapterId: string
           )}
         </>
       ) : (
-        <View style={{ flex: 1, justifyContent: 'center', gap: 14 }}>
+        <View style={{ paddingVertical: 32, gap: 14 }}>
           <Text style={{ fontSize: 60, textAlign: 'center' }}>🎉</Text>
           <Text style={[ui.h2, { textAlign: 'center' }]}>Toutes les cartes sont maîtrisées !</Text>
           <Button label="✅ Passer au quiz" color={color} onPress={() => router.replace({ pathname: '/quiz', params: { mode: 'chapter', id: chapterId } })} />
           <Button label="Recommencer" variant="secondary" color={color} onPress={() => { setQueue(shuffle(cards)); setKnown(0); }} />
         </View>
       )}
-      <RewardModal reward={reward} onClose={() => setReward(null)} />
+      <RewardModal reward={reward} onClose={() => setReward(null)} haptics={state.profile?.haptics ?? true} />
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    flex: 1,
-    maxHeight: 420,
+    // Hauteur minimale de carte ; un texte long l'agrandit et l'écran défile.
+    minHeight: 300,
     borderWidth: 3,
     borderRadius: radius.lg,
     backgroundColor: colors.card,

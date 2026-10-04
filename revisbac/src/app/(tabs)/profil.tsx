@@ -1,27 +1,44 @@
 import { router } from 'expo-router';
-import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { AppState, Linking, Platform, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 
+import { SubjectPicker } from '../../components/SubjectPicker';
 import { Button, Card, ProgressBar, Screen, SectionTitle, styles as ui } from '../../components/ui';
 import { getTrack } from '../../data/catalog';
-import { addDays, formatDay } from '../../lib/dates';
-import { BADGES, DAILY_GOAL_OPTIONS, effectiveStreak, levelInfo } from '../../lib/gamification';
+import { addDays, addMonths, dayKey, formatDay } from '../../lib/dates';
+import { BADGES, DAILY_GOAL_OPTIONS, effectiveStreak, levelInfo, type ReminderSettings } from '../../lib/gamification';
+import {
+  DEFAULT_REMINDER_HOUR,
+  formatHour,
+  REMINDER_HOURS,
+  reminderPermission,
+  requestReminderPermission,
+  type ReminderPermission,
+} from '../../lib/reminders';
+import { readCount } from '../../lib/selectors';
 import { useProgress } from '../../state/progress';
 import { colors, radius } from '../../theme';
 
 export default function ProfileScreen() {
-  const { state, setProfile, reset } = useProgress();
+  const { state, updateProfile, reset } = useProgress();
   const [confirmReset, setConfirmReset] = useState(false);
   const profile = state.profile!;
   const track = getTrack(profile.track);
   const lvl = levelInfo(state.xp);
   const earned = BADGES.filter((b) => state.badges[b.id]).length;
+  const today = dayKey();
+  const dateMoves = [
+    { label: '−1 mois', date: addMonths(profile.examDate, -1) },
+    { label: '−7 j', date: addDays(profile.examDate, -7) },
+    { label: '+7 j', date: addDays(profile.examDate, 7) },
+    { label: '+1 mois', date: addMonths(profile.examDate, 1) },
+  ];
 
   const stats = [
     { label: 'XP total', value: state.xp, icon: '⭐' },
     { label: 'Série actuelle', value: effectiveStreak(state), icon: '🔥' },
     { label: 'Meilleure série', value: state.streak.best, icon: '🏅' },
-    { label: 'Fiches lues', value: Object.keys(state.fichesRead).length, icon: '📄' },
+    { label: 'Fiches lues', value: readCount(state, profile), icon: '📄' },
     { label: 'Quiz terminés', value: state.quizCount, icon: '✅' },
     { label: 'Sans faute', value: state.perfectCount, icon: '💯' },
     { label: 'Défis relevés', value: state.challengesDone, icon: '🎯' },
@@ -74,7 +91,7 @@ export default function ProfileScreen() {
           {DAILY_GOAL_OPTIONS.map((g) => (
             <Pressable
               key={g}
-              onPress={() => setProfile({ ...profile, dailyGoal: g })}
+              onPress={() => updateProfile({ dailyGoal: g })}
               style={[styles.choice, profile.dailyGoal === g && { backgroundColor: colors.primary, borderColor: colors.primary }]}
             >
               <Text style={{ fontWeight: '800', color: profile.dailyGoal === g ? '#fff' : colors.text }}>{g} XP</Text>
@@ -86,17 +103,53 @@ export default function ProfileScreen() {
         <Text style={ui.body}>{formatDay(profile.examDate)}</Text>
         <Text style={ui.muted}>Ajuste-la quand le calendrier officiel est publié.</Text>
         <View style={{ flexDirection: 'row', gap: 8 }}>
-          {[-7, -1, 1, 7].map((n) => (
-            <Pressable key={n} onPress={() => setProfile({ ...profile, examDate: addDays(profile.examDate, n) })} style={styles.choice}>
-              <Text style={{ fontWeight: '800', color: colors.text }}>
-                {n > 0 ? '+' : '−'}
-                {Math.abs(n)} j
-              </Text>
-            </Pressable>
-          ))}
+          {dateMoves.map((m) => {
+            // La date ne descend pas sous aujourd'hui.
+            const disabled = m.date < profile.examDate && m.date < today;
+            return (
+              <Pressable
+                key={m.label}
+                disabled={disabled}
+                onPress={() => updateProfile({ examDate: m.date })}
+                style={[styles.choice, disabled && { opacity: 0.4 }]}
+              >
+                <Text style={{ fontWeight: '800', color: colors.text }}>{m.label}</Text>
+              </Pressable>
+            );
+          })}
         </View>
+        {profile.examDate !== track.defaultExamDate && (
+          <Text style={styles.link} onPress={() => updateProfile({ examDate: track.defaultExamDate })}>
+            Revenir à la date indicative ({formatDay(track.defaultExamDate)})
+          </Text>
+        )}
+      </Card>
 
-        <Button label="Changer de prénom ou d’examen" variant="secondary" onPress={() => router.push('/onboarding')} style={{ marginTop: 6 }} />
+      <Card style={{ gap: 10 }}>
+        <Text style={styles.settingTitle}>Mes matières</Text>
+        <SubjectPicker track={profile.track} hidden={profile.hiddenSubjects} onChange={(hiddenSubjects) => updateProfile({ hiddenSubjects })} />
+      </Card>
+
+      {Platform.OS !== 'web' && (
+        <>
+          <ReminderCard reminder={profile.reminder} onChange={(reminder) => updateProfile({ reminder })} />
+          <Card style={[ui.row, { justifyContent: 'space-between' }]}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.settingTitle}>Vibrations</Text>
+              <Text style={ui.muted}>Aux réponses et aux récompenses</Text>
+            </View>
+            <Switch
+              value={profile.haptics}
+              onValueChange={(haptics) => updateProfile({ haptics })}
+              trackColor={{ true: colors.primary, false: colors.border }}
+              thumbColor="#fff"
+            />
+          </Card>
+        </>
+      )}
+
+      <Card style={{ gap: 10 }}>
+        <Button label="Modifier mon prénom, mon examen ou mes matières" variant="secondary" onPress={() => router.push('/onboarding')} />
         {confirmReset ? (
           <View style={{ gap: 8 }}>
             <Text style={[ui.body, { color: colors.red, fontWeight: '700' }]}>Tout ton XP, tes badges et ta série seront effacés. Sûr ?</Text>
@@ -117,6 +170,75 @@ export default function ProfileScreen() {
   );
 }
 
+/** Rappel quotidien : interrupteur et heure. La permission n'est demandée qu'à l'activation. */
+function ReminderCard({ reminder, onChange }: { reminder: ReminderSettings | null; onChange: (reminder: ReminderSettings) => void }) {
+  const [permission, setPermission] = useState<ReminderPermission | null>(null);
+  const [busy, setBusy] = useState(false);
+  const enabled = !!reminder?.enabled;
+  const hour = reminder?.hour ?? DEFAULT_REMINDER_HOUR;
+
+  // Relue au retour dans l'appli : l'élève a pu l'autoriser dans les réglages du téléphone.
+  useEffect(() => {
+    let alive = true;
+    const refresh = () => {
+      reminderPermission().then((p) => alive && setPermission(p));
+    };
+    refresh();
+    const sub = AppState.addEventListener('change', (status) => status === 'active' && refresh());
+    return () => {
+      alive = false;
+      sub.remove();
+    };
+  }, []);
+
+  const apply = async (on: boolean, h: number) => {
+    const minute = h === reminder?.hour ? reminder.minute : 0;
+    if (!on) {
+      onChange({ enabled: false, hour: h, minute });
+      return;
+    }
+    setBusy(true);
+    const granted = await requestReminderPermission();
+    setBusy(false);
+    setPermission(granted ? 'granted' : 'denied');
+    onChange({ enabled: granted, hour: h, minute });
+  };
+
+  return (
+    <Card style={{ gap: 10 }}>
+      <View style={[ui.row, { justifyContent: 'space-between' }]}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.settingTitle}>Rappel quotidien</Text>
+          <Text style={ui.muted}>{enabled ? `Chaque jour à ${formatHour(hour, reminder?.minute)}, au plus une fois` : 'Désactivé'}</Text>
+        </View>
+        <Switch
+          value={enabled}
+          disabled={busy}
+          onValueChange={(on) => void apply(on, hour)}
+          trackColor={{ true: colors.primary, false: colors.border }}
+          thumbColor="#fff"
+        />
+      </View>
+      <View style={styles.hours}>
+        {REMINDER_HOURS.map((h) => {
+          const on = enabled && hour === h;
+          return (
+            <Pressable key={h} disabled={busy} onPress={() => void apply(true, h)} style={[styles.hour, on && styles.choiceOn]}>
+              <Text style={{ fontWeight: '800', color: on ? '#fff' : colors.text }}>{formatHour(h)}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+      {permission === 'denied' && (
+        <>
+          <Text style={[ui.body, { color: colors.red }]}>Les notifications sont bloquées pour RéviBac : autorise-les dans les réglages du téléphone.</Text>
+          <Button label="Ouvrir les réglages du téléphone" variant="ghost" onPress={() => void Linking.openSettings().catch(() => {})} />
+        </>
+      )}
+    </Card>
+  );
+}
+
 const styles = StyleSheet.create({
   avatar: { width: 72, height: 72, borderRadius: 36, backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
   avatarText: { fontSize: 32, fontWeight: '900', color: '#fff' },
@@ -129,4 +251,8 @@ const styles = StyleSheet.create({
   badgeDesc: { fontSize: 11, color: colors.muted, textAlign: 'center' },
   settingTitle: { fontSize: 15, fontWeight: '800', color: colors.text },
   choice: { flex: 1, borderWidth: 2, borderColor: colors.border, borderRadius: radius.sm, paddingVertical: 10, alignItems: 'center', backgroundColor: colors.card },
+  choiceOn: { backgroundColor: colors.primary, borderColor: colors.primary },
+  hours: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  hour: { borderWidth: 2, borderColor: colors.border, borderRadius: radius.sm, paddingVertical: 10, paddingHorizontal: 12, backgroundColor: colors.card },
+  link: { fontSize: 14, fontWeight: '700', color: colors.primary, textDecorationLine: 'underline' },
 });

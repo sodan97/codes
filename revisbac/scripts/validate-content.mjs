@@ -7,8 +7,11 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 const dir = join(dirname(fileURLToPath(import.meta.url)), '..', 'src', 'data', 'content');
 const TRACKS = new Set(['bfm', 'bac-s', 'bac-l']);
 const errors = [];
+const warnings = [];
 const ids = new Set();
 const err = (where, msg) => errors.push(`${where}: ${msg}`);
+const warn = (where, msg) => warnings.push(`${where}: ${msg}`);
+const countOf = (list, word) => list.filter((w) => w === word).length;
 const unique = (id, where) => (ids.has(id) ? err(where, `id dupliqué "${id}"`) : ids.add(id));
 
 let nChapters = 0, nQuestions = 0, nCards = 0;
@@ -50,12 +53,23 @@ for (const file of files) {
         const blanks = q.prompt.split('___').length - 1;
         if (blanks < 1) err(wq, 'aucun trou "___"');
         if (blanks !== q.answers?.length) err(wq, `${blanks} trous mais ${q.answers?.length} réponses`);
-        for (const a of q.answers ?? []) if (!q.bank?.includes(a)) err(wq, `"${a}" absent de la banque de mots`);
+        for (const a of new Set(q.answers ?? [])) {
+          // Une réponse répétée doit figurer autant de fois dans la banque, sinon la question est impossible.
+          const need = countOf(q.answers, a);
+          const have = countOf(q.bank ?? [], a);
+          if (have === 0) err(wq, `"${a}" absent de la banque de mots`);
+          else if (have < need) err(wq, `"${a}" doit figurer ${need} fois dans la banque (${have} seulement)`);
+        }
+        // Mot en double sans réponse répétée : pas bloquant, mais signalé.
+        for (const w of new Set(q.bank ?? [])) {
+          if (countOf(q.bank, w) > Math.max(1, countOf(q.answers ?? [], w))) warn(wq, `mot "${w}" en double dans la banque`);
+        }
         if ((q.bank?.length ?? 0) <= (q.answers?.length ?? 0)) err(wq, 'la banque doit contenir des distracteurs');
       } else err(wq, `type inconnu ${q.type}`);
     }
   }
 }
+if (warnings.length) console.warn(`⚠️ ${warnings.length} avertissement(s) :\n${warnings.join('\n')}`);
 console.log(`${files.length} matières, ${nChapters} chapitres, ${nCards} flashcards, ${nQuestions} questions`);
 if (errors.length) { console.error(errors.join('\n')); process.exit(1); }
 console.log('Contenu valide ✔');
