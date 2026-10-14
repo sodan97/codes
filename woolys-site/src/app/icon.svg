@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-6 -6 132 132">
+  <defs>
+    <linearGradient id="a" x1="8" y1="0" x2="112" y2="0" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#E4CBA3"/><stop offset=".42" stop-color="#D4AF7C"/><stop offset=".62" stop-color="#3FB79F"/><stop offset="1" stop-color="#158F7A"/></linearGradient>
+    <linearGradient id="g" x1="0" y1="30" x2="0" y2="95" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#EFE0C6"/><stop offset=".55" stop-color="#D4AF7C"/><stop offset="1" stop-color="#B08452"/></linearGradient>
+    <mask id="m" maskUnits="userSpaceOnUse" x="0" y="0" width="120" height="120"><rect width="120" height="120" fill="#fff"/><path d="M27 35 43.5 90 60 53 76.5 90 93 35" fill="none" stroke="#000" stroke-width="15" stroke-linejoin="round" stroke-linecap="round"/></mask>
+    <mask id="n" maskUnits="userSpaceOnUse" x="0" y="0" width="120" height="120"><rect width="120" height="120" fill="#fff"/><path d="M27 35 43.5 90 60 53 76.5 90 93 35" fill="none" stroke="#000" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/></mask>
+  </defs>
+  <rect x="-6" y="-6" width="132" height="132" rx="28" fill="#0B3D33"/>
+  <path d="M67.52 6.53A54 54 0 0 1 67.52 113.47M52.48 113.47A54 54 0 0 1 52.48 6.53M19.55 40.27A45 45 0 0 1 53.74 15.44M63.14 15.11A45 45 0 0 1 100.45 40.27M30.15 39.87A36 36 0 0 1 89.85 39.87M39.94 41.93A27 27 0 0 1 64.69 33.41M70.11 34.97A27 27 0 0 1 80.06 41.93M48.43 46.21A18 18 0 0 1 71.57 46.21M52.05 88.77A9 9 0 0 1 67.95 88.77M47.74 82.72A16 16 0 0 1 72.26 82.72" fill="none" stroke="url(#a)" stroke-width="3.2" stroke-linecap="round" mask="url(#m)"/>
+  <path d="M27 35 43.5 90 60 53 76.5 90 93 35" fill="none" stroke="url(#g)" stroke-width="9" stroke-linejoin="round" stroke-linecap="round" mask="url(#n)"/>
+</svg>
